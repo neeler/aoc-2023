@@ -1,0 +1,8 @@
+{
+  "watch": ["src/", ".env", ".swcrc"],
+  "ext": "js,ts",
+  "execMap": {
+    "js": "node --inspect -r @swc-node/register",
+    "ts": "node --inspect -r @swc-node/register"
+  }
+}
