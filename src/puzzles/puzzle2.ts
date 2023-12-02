@@ -1,56 +1,56 @@
 import { Puzzle } from './Puzzle';
 
 type Color = 'red' | 'green' | 'blue';
-const colors: Color[] = ['red', 'green', 'blue'];
+const colors = ['red', 'green', 'blue'] satisfies Color[];
 type ColorCount = Record<Color, number>;
+
+function isColor(s: string): s is Color {
+    return (colors as string[]).includes(s);
+}
+
+function newColorCount(counts: Partial<ColorCount> = {}): ColorCount {
+    return {
+        red: 0,
+        green: 0,
+        blue: 0,
+        ...counts,
+    };
+}
 
 export const puzzle2 = new Puzzle({
     day: 2,
     processFile: (fileData) => {
         const lines = fileData.trim().split('\n');
         return lines.map((line) => {
-            const gameId = parseInt(line.match(/Game ([^:]*):/)?.[1] ?? '', 10);
-            if (Number.isNaN(gameId)) {
-                throw new Error('Non-numerical game ID');
-            }
-            const [, roundContent] = line.split(': ');
-            const rounds = roundContent.split('; ').map((round) =>
-                round
-                    .split(', ')
-                    .map((group) => {
-                        const [count, color] = group.split(' ');
-                        if (!isColor(color)) {
-                            throw new Error(`Invalid color: ${color}`);
-                        }
-                        return {
-                            color,
-                            count: parseInt(count, 10),
-                        };
-                    })
-                    .reduce<ColorCount>(
-                        (counts, { color, count }) => {
-                            counts[color] = count;
-                            return counts;
-                        },
-                        {
-                            red: 0,
-                            green: 0,
-                            blue: 0,
-                        }
+            const [, gameId, roundContents] =
+                line.match(/Game (\d*): (.*)/) ?? [];
+
+            const rounds = roundContents.split('; ').map((round) =>
+                newColorCount(
+                    Object.fromEntries(
+                        round.split(', ').map((group) => {
+                            const [count, color] = group.split(' ');
+                            if (!isColor(color)) {
+                                throw new Error(`Invalid color: ${color}`);
+                            }
+                            return [color, parseInt(count, 10)];
+                        })
                     )
+                )
             );
+
             return {
-                id: gameId,
+                id: parseInt(gameId, 10),
                 rounds,
             };
         });
     },
     part1: (games) => {
-        const bagContents: ColorCount = {
+        const bagContents = newColorCount({
             red: 12,
             green: 13,
             blue: 14,
-        };
+        });
         const possibleGames = games.filter((game) =>
             colors.every((color) =>
                 game.rounds.every((round) => round[color] <= bagContents[color])
@@ -63,7 +63,7 @@ export const puzzle2 = new Puzzle({
             Object.fromEntries(
                 colors.map((color) => {
                     const maxSeen = Math.max(
-                        ...game.rounds.map((round) => round[color] ?? 0)
+                        ...game.rounds.map((round) => round[color])
                     );
                     return [color, maxSeen];
                 })
@@ -76,7 +76,3 @@ export const puzzle2 = new Puzzle({
             .reduce((sum, v) => sum + v, 0);
     },
 });
-
-function isColor(s: string): s is Color {
-    return (colors as string[]).includes(s);
-}
