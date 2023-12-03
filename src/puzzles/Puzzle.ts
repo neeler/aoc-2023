@@ -33,7 +33,7 @@ export class Puzzle<TData = string> {
                   .trim()
                   .split('\n')
                   .filter((s) => s)
-            : [fileData];
+            : [fileData.trim()].filter((s) => s);
 
         return stringsToParse.map((stringToParse) =>
             this.config.parseInput(stringToParse, options)
