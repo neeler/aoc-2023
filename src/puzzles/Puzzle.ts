@@ -13,12 +13,11 @@ type FileProcessor<TData> = (
 
 interface PuzzleConfig<TData> {
     day: number;
-    parseLineByLine?: boolean;
     parseInput: FileProcessor<TData>;
-    example1?: (data: TData[]) => any;
-    part1: (data: TData[]) => any;
-    example2?: (data: TData[]) => any;
-    part2: (data: TData[]) => any;
+    example1?: (data: TData) => any;
+    part1: (data: TData) => any;
+    example2?: (data: TData) => any;
+    part2: (data: TData) => any;
     skipExample?: boolean;
     skipPart1?: boolean;
     skipPart2?: boolean;
@@ -28,16 +27,7 @@ export class Puzzle<TData = string> {
     constructor(private readonly config: PuzzleConfig<TData>) {}
 
     private processFile(fileData: string, options: FileProcessorOptions) {
-        const stringsToParse = this.config.parseLineByLine
-            ? fileData
-                  .trim()
-                  .split('\n')
-                  .filter((s) => s)
-            : [fileData.trim()].filter((s) => s);
-
-        return stringsToParse.map((stringToParse) =>
-            this.config.parseInput(stringToParse, options)
-        );
+        return this.config.parseInput(fileData.trim(), options);
     }
 
     async run({

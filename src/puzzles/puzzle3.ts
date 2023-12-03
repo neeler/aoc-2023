@@ -20,20 +20,19 @@ export const puzzle3 = new Puzzle<{
     symbols: Symbol[];
 }>({
     day: 3,
-    parseLineByLine: false,
-    parseInput: (inputText) => {
+    parseInput: (fileData) => {
         const parts: Part[] = [];
         const seenSymbols = new CustomSet<Symbol, string>({
             getKey: (symbol) => symbol.index.toString(),
         });
 
-        const charMatrix = inputText
+        const charMatrix = fileData
             .split('\n')
             .map((row) => row.split('').concat('.'));
         const width = charMatrix[0]?.length ?? 0;
         const height = charMatrix.length;
 
-        const matches = [...inputText.replace(/\n/g, '.').matchAll(/\d*/g)];
+        const matches = [...fileData.replace(/\n/g, '.').matchAll(/\d*/g)];
 
         for (const result of matches) {
             const match = result[0];
@@ -105,32 +104,22 @@ export const puzzle3 = new Puzzle<{
             symbols: seenSymbols.values(),
         };
     },
-    part1: (rows) => {
-        return rows.reduce(
-            (sum, { parts }) =>
-                sum + parts.reduce((rowSum, part) => rowSum + part.number, 0),
+    part1: ({ parts }) => {
+        return parts.reduce((rowSum, part) => rowSum + part.number, 0);
+    },
+    part2: ({ symbols }) => {
+        const gears = symbols.filter(
+            (symbol) =>
+                symbol.symbol === '*' && symbol.neighboringParts.length === 2
+        );
+        return gears.reduce(
+            (rowSum, gear) =>
+                rowSum +
+                gear.neighboringParts.reduce(
+                    (ratio, part) => ratio * part.number,
+                    1
+                ),
             0
         );
-    },
-    part2: (rows) => {
-        return rows.reduce((sum, { parts, symbols }) => {
-            const gears = symbols.filter(
-                (symbol) =>
-                    symbol.symbol === '*' &&
-                    symbol.neighboringParts.length === 2
-            );
-            return (
-                sum +
-                gears.reduce(
-                    (rowSum, gear) =>
-                        rowSum +
-                        gear.neighboringParts.reduce(
-                            (ratio, part) => ratio * part.number,
-                            1
-                        ),
-                    0
-                )
-            );
-        }, 0);
     },
 });

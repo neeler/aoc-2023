@@ -1,10 +1,9 @@
 import { Puzzle } from './Puzzle';
 
-export const puzzle1 = new Puzzle<string>({
+export const puzzle1 = new Puzzle<string[]>({
     day: 1,
-    parseLineByLine: true,
-    parseInput: (line) => {
-        return line;
+    parseInput: (fileData) => {
+        return fileData.split('\n').filter((s) => s);
     },
     skipPart1: true,
     part1: (inputLines) => {
