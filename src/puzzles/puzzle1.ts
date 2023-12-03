@@ -39,9 +39,12 @@ export const puzzle1 = new Puzzle<string>({
                     inputLine.slice(i).startsWith(word)
                 );
                 if (matchingWord) {
-                    digits.push(digitWords[matchingWord]);
+                    const number = digitWords[matchingWord];
+                    if (number) {
+                        digits.push(number);
+                    }
                 } else {
-                    const parsed = parseInt(inputLine[i], 10);
+                    const parsed = parseInt(inputLine[i] ?? '', 10);
                     if (!Number.isNaN(parsed)) {
                         digits.push(parsed);
                     }

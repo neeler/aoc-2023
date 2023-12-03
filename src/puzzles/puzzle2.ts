@@ -24,24 +24,25 @@ export const puzzle2 = new Puzzle<{
     day: 2,
     parseLineByLine: true,
     parseInput: (line) => {
-        const [, gameId, roundContents] = line.match(/Game (\d*): (.*)/) ?? [];
+        const [, gameId, roundContents = ''] =
+            line.match(/Game (\d*): (.*)/) ?? [];
 
         const rounds = roundContents.split('; ').map((round) =>
             newColorCount(
                 Object.fromEntries(
                     round.split(', ').map((group) => {
                         const [count, color] = group.split(' ');
-                        if (!isColor(color)) {
+                        if (!isColor(color ?? '')) {
                             throw new Error(`Invalid color: ${color}`);
                         }
-                        return [color, parseInt(count, 10)];
+                        return [color, parseInt(count ?? '', 10)];
                     })
                 )
             )
         );
 
         return {
-            id: parseInt(gameId, 10),
+            id: parseInt(gameId ?? '', 10),
             rounds,
         };
     },
