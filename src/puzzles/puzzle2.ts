@@ -17,34 +17,40 @@ function newColorCount(counts: Partial<ColorCount> = {}): ColorCount {
     };
 }
 
-export const puzzle2 = new Puzzle<{
-    id: number;
-    rounds: ColorCount[];
-}>({
+export const puzzle2 = new Puzzle<
+    {
+        id: number;
+        rounds: ColorCount[];
+    }[]
+>({
     day: 2,
-    parseLineByLine: true,
-    parseInput: (line) => {
-        const [, gameId, roundContents = ''] =
-            line.match(/Game (\d*): (.*)/) ?? [];
+    parseInput: (fileData) => {
+        return fileData
+            .split('\n')
+            .filter((s) => s)
+            .map((line) => {
+                const [, gameId, roundContents = ''] =
+                    line.match(/Game (\d*): (.*)/) ?? [];
 
-        const rounds = roundContents.split('; ').map((round) =>
-            newColorCount(
-                Object.fromEntries(
-                    round.split(', ').map((group) => {
-                        const [count, color] = group.split(' ');
-                        if (!isColor(color ?? '')) {
-                            throw new Error(`Invalid color: ${color}`);
-                        }
-                        return [color, parseInt(count ?? '', 10)];
-                    })
-                )
-            )
-        );
+                const rounds = roundContents.split('; ').map((round) =>
+                    newColorCount(
+                        Object.fromEntries(
+                            round.split(', ').map((group) => {
+                                const [count, color] = group.split(' ');
+                                if (!isColor(color ?? '')) {
+                                    throw new Error(`Invalid color: ${color}`);
+                                }
+                                return [color, parseInt(count ?? '', 10)];
+                            })
+                        )
+                    )
+                );
 
-        return {
-            id: parseInt(gameId ?? '', 10),
-            rounds,
-        };
+                return {
+                    id: parseInt(gameId ?? '', 10),
+                    rounds,
+                };
+            });
     },
     part1: (games) => {
         const bagContents = newColorCount({
