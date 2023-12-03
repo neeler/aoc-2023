@@ -8,16 +8,17 @@ interface FileProcessorOptions {
 
 type FileProcessor<TData> = (
     fileData: string,
-    options: FileProcessorOptions,
+    options: FileProcessorOptions
 ) => TData;
 
 interface PuzzleConfig<TData> {
     day: number;
-    processFile?: FileProcessor<TData>;
-    example1?: (data: TData) => any;
-    part1: (data: TData) => any;
-    example2?: (data: TData) => any;
-    part2: (data: TData) => any;
+    parseLineByLine?: boolean;
+    parseInput: FileProcessor<TData>;
+    example1?: (data: TData[]) => any;
+    part1: (data: TData[]) => any;
+    example2?: (data: TData[]) => any;
+    part2: (data: TData[]) => any;
     skipExample?: boolean;
     skipPart1?: boolean;
     skipPart2?: boolean;
@@ -27,10 +28,16 @@ export class Puzzle<TData = string> {
     constructor(private readonly config: PuzzleConfig<TData>) {}
 
     private processFile(fileData: string, options: FileProcessorOptions) {
-        if (this.config.processFile) {
-            return this.config.processFile(fileData, options);
-        }
-        return fileData as TData;
+        const stringsToParse = this.config.parseLineByLine
+            ? fileData
+                  .trim()
+                  .split('\n')
+                  .filter((s) => s)
+            : [fileData];
+
+        return stringsToParse.map((stringToParse) =>
+            this.config.parseInput(stringToParse, options)
+        );
     }
 
     async run({
@@ -40,13 +47,13 @@ export class Puzzle<TData = string> {
         const exampleData = example
             ? this.processFile(
                   readDataFile(`puzzle${this.config.day}-example.txt`),
-                  { example: true },
+                  { example: true }
               )
             : undefined;
         const puzzleData = mainProblem
             ? this.processFile(
                   readDataFile(`puzzle${this.config.day}-input.txt`),
-                  { puzzle: true },
+                  { puzzle: true }
               )
             : undefined;
 
@@ -62,7 +69,7 @@ export class Puzzle<TData = string> {
         if (!this.config.skipPart1 && exampleData) {
             const result =
                 (await (this.config.example1 ?? this.config.part1)(
-                    exampleData,
+                    exampleData
                 )) ?? 'Not solved yet...';
             console.log(`
 ** * * * * * * * * * * * * * * * * * * * * * * * **
@@ -96,7 +103,7 @@ export class Puzzle<TData = string> {
             timer.reset();
             const result =
                 (await (this.config.example2 ?? this.config.part2)(
-                    exampleData,
+                    exampleData
                 )) ?? 'Not solved yet...';
             console.log(`
 ** * * * * * * * * * * * * * * * * * * * * * * * **
