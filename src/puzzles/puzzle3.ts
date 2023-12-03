@@ -1,15 +1,16 @@
+import { CustomSet } from '~/types/CustomSet';
+import { Point, PointSet } from '~/types/Point';
 import { Puzzle } from './Puzzle';
 
-type Index = [number, number];
 interface Part {
     number: number;
-    index: Index;
-    digitIndexes: Index[];
+    index: Point;
+    digitIndexes: PointSet;
     symbolNeighbors: Symbol[];
 }
 
 interface Symbol {
-    index: Index;
+    index: Point;
     symbol: string;
     neighboringParts: Part[];
 }
@@ -22,7 +23,9 @@ export const puzzle3 = new Puzzle<{
     parseLineByLine: false,
     parseInput: (inputText) => {
         const parts: Part[] = [];
-        const symbolCache: Record<string, Symbol> = {};
+        const seenSymbols = new CustomSet<Symbol, string>({
+            getKey: (symbol) => symbol.index.toString(),
+        });
 
         const charMatrix = inputText
             .split('\n')
@@ -38,58 +41,52 @@ export const puzzle3 = new Puzzle<{
             if (!isNaN(number) && result.index !== undefined) {
                 const x = result.index % width;
                 const y = Math.floor(result.index / width);
-                const index: Index = [x, y];
-                const digitIndexes: Index[] = [];
+                const index = new Point(x, y);
+                const digitIndexes = new PointSet();
                 for (let dx = 0; dx < match.length; dx++) {
                     const newX = dx + x;
                     const dy = newX >= width ? 1 : 0;
-                    digitIndexes.push([newX % width, y + dy]);
+                    digitIndexes.add(new Point(newX % width, y + dy));
                 }
-                const symbolNeighborIndexes = digitIndexes.reduce<Index[]>(
-                    (symbolIndexes, digitIndex) => {
-                        const neighbors = getNeighbors(digitIndex);
-                        const symbolNeighbors = neighbors.filter(
-                            ([adjX, adjY]) => {
-                                const adjacentChar = charMatrix[adjY]?.[adjX];
-                                return (
-                                    adjacentChar &&
-                                    adjacentChar !== '.' &&
-                                    isNaN(parseInt(adjacentChar, 10))
-                                );
-                            }
-                        );
-                        for (const symbolIndex of symbolNeighbors) {
+                const symbolNeighborIndexes = digitIndexes
+                    .values()
+                    .reduce((symbolIndexes, digitIndex) => {
+                        const neighbors = digitIndex.neighbors({
+                            maximumGridSize: new Point(width, height),
+                            ignorePoints: digitIndexes,
+                        });
+                        neighbors.forEach((neighbor) => {
+                            const adjacentChar =
+                                charMatrix[neighbor.y]?.[neighbor.x];
                             if (
-                                !symbolIndexes.some(
-                                    (si) =>
-                                        si.toString() === symbolIndex.toString()
-                                )
+                                adjacentChar &&
+                                adjacentChar !== '.' &&
+                                isNaN(parseInt(adjacentChar, 10))
                             ) {
-                                symbolIndexes.push(symbolIndex);
+                                symbolIndexes.add(neighbor);
                             }
-                        }
+                        });
                         return symbolIndexes;
-                    },
-                    []
-                );
-                if (symbolNeighborIndexes.length) {
-                    const symbolNeighbors: Symbol[] = symbolNeighborIndexes.map(
-                        (index) => {
-                            const existingSymbol =
-                                symbolCache[index.toString()];
+                    }, new PointSet());
+                if (symbolNeighborIndexes.size() > 0) {
+                    const symbolNeighbors: Symbol[] = symbolNeighborIndexes
+                        .values()
+                        .map((index) => {
+                            const existingSymbol = seenSymbols.get(
+                                index.toString()
+                            );
                             if (existingSymbol) {
                                 return existingSymbol;
                             }
                             const newSymbol: Symbol = {
                                 index,
-                                symbol: charMatrix[index[1]]?.[index[0]] ?? '',
+                                symbol: charMatrix[index.y]?.[index.x] ?? '',
                                 neighboringParts: [],
                             };
-                            symbolCache[newSymbol.index.toString()] = newSymbol;
+                            seenSymbols.add(newSymbol);
                             return newSymbol;
-                        }
-                    );
-                    const part = {
+                        });
+                    const part: Part = {
                         number,
                         index,
                         digitIndexes,
@@ -105,7 +102,7 @@ export const puzzle3 = new Puzzle<{
 
         return {
             parts,
-            symbols: Object.values(symbolCache),
+            symbols: seenSymbols.values(),
         };
     },
     part1: (rows) => {
@@ -137,21 +134,3 @@ export const puzzle3 = new Puzzle<{
         }, 0);
     },
 });
-
-function getNeighbors([x, y]: Index): Index[] {
-    const indexes: Index[] = [];
-
-    for (let dx = -1; dx < 2; dx++) {
-        for (let dy = -1; dy < 2; dy++) {
-            if (dx || dy) {
-                const newX = x + dx;
-                const newY = y + dy;
-                if (newX >= 0 && newY >= 0) {
-                    indexes.push([x + dx, y + dy]);
-                }
-            }
-        }
-    }
-
-    return indexes;
-}
