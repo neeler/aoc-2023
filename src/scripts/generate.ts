@@ -22,9 +22,9 @@ writeFileSync(
 
 export const puzzle${nextPuzzle} = new Puzzle({
     day: ${nextPuzzle},
-    processFile: (fileData) => {
-        const lines = fileData.trim().split('\\n');
-        return lines;
+    parseLineByLine: true,
+    parseInput: (line) => {
+        return line;
     },
     part1: (data) => {
         console.log(data);

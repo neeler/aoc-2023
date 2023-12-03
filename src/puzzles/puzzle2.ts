@@ -17,33 +17,33 @@ function newColorCount(counts: Partial<ColorCount> = {}): ColorCount {
     };
 }
 
-export const puzzle2 = new Puzzle({
+export const puzzle2 = new Puzzle<{
+    id: number;
+    rounds: ColorCount[];
+}>({
     day: 2,
-    processFile: (fileData) => {
-        const lines = fileData.trim().split('\n');
-        return lines.map((line) => {
-            const [, gameId, roundContents] =
-                line.match(/Game (\d*): (.*)/) ?? [];
+    parseLineByLine: true,
+    parseInput: (line) => {
+        const [, gameId, roundContents] = line.match(/Game (\d*): (.*)/) ?? [];
 
-            const rounds = roundContents.split('; ').map((round) =>
-                newColorCount(
-                    Object.fromEntries(
-                        round.split(', ').map((group) => {
-                            const [count, color] = group.split(' ');
-                            if (!isColor(color)) {
-                                throw new Error(`Invalid color: ${color}`);
-                            }
-                            return [color, parseInt(count, 10)];
-                        })
-                    )
+        const rounds = roundContents.split('; ').map((round) =>
+            newColorCount(
+                Object.fromEntries(
+                    round.split(', ').map((group) => {
+                        const [count, color] = group.split(' ');
+                        if (!isColor(color)) {
+                            throw new Error(`Invalid color: ${color}`);
+                        }
+                        return [color, parseInt(count, 10)];
+                    })
                 )
-            );
+            )
+        );
 
-            return {
-                id: parseInt(gameId, 10),
-                rounds,
-            };
-        });
+        return {
+            id: parseInt(gameId, 10),
+            rounds,
+        };
     },
     part1: (games) => {
         const bagContents = newColorCount({
