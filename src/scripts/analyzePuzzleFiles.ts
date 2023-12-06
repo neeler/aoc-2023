@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import kleur from 'kleur';
 import path from 'path';
 import { SolutionTemplate } from '~/scripts/SolutionTemplate';

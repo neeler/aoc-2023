@@ -1,11 +1,8 @@
-import dotenv from 'dotenv';
 import { existsSync, statSync, writeFileSync } from 'fs';
 import kleur from 'kleur';
 import path from 'path';
 import { sessionKey, year } from '~/constants';
 import { createDirIfNotExists } from '~/scripts/createDirIfNotExists';
-
-dotenv.config();
 
 export async function fetchPuzzleInput(
     day: number,
