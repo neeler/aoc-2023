@@ -1,3 +1,4 @@
+import kleur from 'kleur';
 import { Timer } from '~/util/Timer';
 import { readDataFile } from '~/util/readDataFile';
 
@@ -34,18 +35,37 @@ export class Puzzle<TData = string> {
         example = false,
         mainProblem = true,
     }: { example?: boolean; mainProblem?: boolean } = {}) {
-        const exampleData = example
-            ? this.processFile(
-                  readDataFile(`puzzle${this.config.day}-example.txt`),
-                  { example: true }
-              )
-            : undefined;
-        const puzzleData = mainProblem
-            ? this.processFile(
-                  readDataFile(`puzzle${this.config.day}-input.txt`),
-                  { puzzle: true }
-              )
-            : undefined;
+        let exampleData: TData | undefined;
+        if (example) {
+            const data = readDataFile(
+                `puzzle${this.config.day}-example.txt`
+            ).trim();
+            if (data) {
+                exampleData = this.processFile(data, { example: true });
+            } else {
+                console.log(
+                    kleur.yellow(
+                        `Warning: No example data found for puzzle ${this.config.day}`
+                    )
+                );
+            }
+        }
+
+        let puzzleData: TData | undefined;
+        if (mainProblem) {
+            const data = readDataFile(
+                `puzzle${this.config.day}-input.txt`
+            ).trim();
+            if (data) {
+                puzzleData = this.processFile(data, { puzzle: true });
+            } else {
+                console.log(
+                    kleur.yellow(
+                        `Warning: No input data found for puzzle ${this.config.day}`
+                    )
+                );
+            }
+        }
 
         const timer = new Timer();
         console.log(`

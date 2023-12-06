@@ -13,8 +13,16 @@ export class Timer {
         const msRun = new Date().valueOf() - this.startedAt.valueOf();
         const secRun = msRun / 1000;
         const minRun = secRun / 60;
-        return `Ran for ${secRun.toFixed(2)} seconds (${minRun.toFixed(
-            2
-        )} minutes)`;
+
+        const times: string[] = [];
+        if (secRun < 1) {
+            times.push(`${msRun} ms`);
+        } else if (minRun < 1) {
+            times.push(`${secRun.toFixed(3)} seconds`);
+        } else {
+            times.push(`${minRun.toFixed(2)} minutes`);
+        }
+
+        return `Ran for ${times.join(' / ')}`;
     }
 }
