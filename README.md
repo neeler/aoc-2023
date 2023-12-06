@@ -12,13 +12,19 @@ npm install
 
 ### Step 2 - Add puzzle inputs.
 
-Notice the new `data` directory, created by the `postinstall` script.
+Notice the new `data` directory, created by the `postinstall` (AKA `setup`) script.
 It should have prepopulated the folder with two blank files for each puzzle X:
 
 - `puzzleX-example.txt`
 - `puzzleX-input.txt`
 
 This is where you'll add your puzzle inputs; just paste the respective contents into each file.
+
+> [!TIP]
+>
+> You can automate the data entry process by adding your session token to the `.env` file.
+> You can find your session key in the 'session' cookie at: https://adventofcode.com.
+> Then run the `npm run setup` command to fetch the inputs for all puzzles.
 
 ### Step 3 - Run puzzle solution(s).
 
