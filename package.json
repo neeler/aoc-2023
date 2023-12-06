@@ -10,6 +10,7 @@
     "clean": "npx rimraf dist",
     "prestart": "npm run build",
     "start": "node ./dist/index.js",
+    "postinstall": "node -r @swc-node/register src/scripts/generateBlankInputFiles.ts",
     "lint:es": "eslint .",
     "lint:fix": "eslint . --fix"
   },
