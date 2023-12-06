@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { existsSync, statSync, writeFileSync } from 'fs';
 import kleur from 'kleur';
 import path from 'path';
+import { sessionKey, year } from '~/constants';
 import { createDirIfNotExists } from '~/scripts/createDirIfNotExists';
 
 dotenv.config();
@@ -15,9 +16,6 @@ export async function fetchPuzzleInput(
     }
 ) {
     const dataFolder = createDirIfNotExists('../../data');
-
-    const year = process.env.AOC_YEAR || new Date().getFullYear().toString();
-    const sessionKey = process.env.AOC_SESSION_KEY;
 
     if (!sessionKey) {
         console.log(kleur.red('AOC_SESSION_KEY not found in .env file!'));

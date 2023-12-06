@@ -20,35 +20,49 @@ export const puzzle6 = new Puzzle({
             .slice(1)
             .map((s) => parseInt(s, 10));
 
-        return {
-            times,
-            distances,
-        };
+        return fileData;
     },
-    part1: ({ times, distances }) => {
-        const races = times.map((time, i) => ({
-            time,
-            record: distances[i]!,
-        }));
+    part1: (fileData) => {
+        const races = getRaces(fileData.split('\n'));
 
         return product(races.map(nWaysToWin));
     },
-    part2: ({ times, distances }) => {
-        const time = parseInt(times.join(''), 10);
-        const record = parseInt(distances.join(''), 10);
+    part2: (fileData) => {
+        const races = getRaces(
+            fileData.split('\n').map((s) => s.replace(/\s/g, ''))
+        );
 
-        return nWaysToWin({
-            time,
-            record,
-        });
+        return product(races.map(nWaysToWin));
     },
 });
+
+function getRaces(lines: string[]) {
+    const [timeLine = '', distanceLine = ''] = lines;
+
+    const times = [...timeLine.matchAll(/(\d+)/g)].map(([s]) =>
+        parseInt(s, 10)
+    );
+    const distances = [...distanceLine.matchAll(/(\d+)/g)].map(([s]) =>
+        parseInt(s, 10)
+    );
+
+    return times.map((time, iGame): Race => {
+        const record = distances[iGame];
+        if (!record) {
+            throw new Error(`No record for game ${iGame}`);
+        }
+        return {
+            time,
+            record,
+        };
+    });
+}
 
 function nWaysToWin(race: Race) {
     let wins = 0;
     for (let buttonTime = 1; buttonTime < race.time; buttonTime++) {
         const velocity = buttonTime;
-        const timeRemaining = Math.max(0, race.time - buttonTime);
+        const timeRemaining = race.time - buttonTime;
         const distanceTraveled = velocity * timeRemaining;
         if (distanceTraveled > race.record) {
             wins++;
