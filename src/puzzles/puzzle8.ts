@@ -76,11 +76,13 @@ export const puzzle8 = new Puzzle({
                 return { [key]: nSteps };
             }
         );
-        const loopDetectedForNodes: (LoopDefinition | null)[] =
+        const cycleDetectedForNodes: (CycleDefinition | null)[] =
             currentNodes.map(() => null);
 
         while (
-            loopDetectedForNodes.some((loop) => loop?.endOffset === undefined)
+            cycleDetectedForNodes.some(
+                (cycle) => cycle?.endOffset === undefined
+            )
         ) {
             const direction = instructions[iInstruction];
             currentNodes = currentNodes.map((node, iNode) => {
@@ -92,26 +94,26 @@ export const puzzle8 = new Puzzle({
                 });
                 const existingStepsToState = stepsToState[nextStateKey];
                 if (existingStepsToState !== undefined) {
-                    const existingLoopDef = loopDetectedForNodes[iNode];
-                    if (existingLoopDef) {
+                    const existingCycleDef = cycleDetectedForNodes[iNode];
+                    if (existingCycleDef) {
                         if (node.isEnd) {
-                            existingLoopDef.endOffset =
+                            existingCycleDef.endOffset =
                                 (nSteps -
-                                    existingLoopDef.loopStart -
-                                    existingLoopDef.loopLength) %
-                                existingLoopDef.loopLength;
+                                    existingCycleDef.cycleStart -
+                                    existingCycleDef.cycleLength) %
+                                existingCycleDef.cycleLength;
                         }
                     } else {
-                        const loopLength = nSteps + 1 - existingStepsToState;
-                        const loopDef: LoopDefinition = {
-                            loopStart: nSteps - loopLength,
-                            loopLength,
+                        const cycleLength = nSteps + 1 - existingStepsToState;
+                        const cycleDef: CycleDefinition = {
+                            cycleStart: nSteps - cycleLength,
+                            cycleLength: cycleLength,
                         };
-                        loopDetectedForNodes[iNode] = loopDef;
+                        cycleDetectedForNodes[iNode] = cycleDef;
 
                         if (node.isEnd) {
-                            loopDef.endOffset =
-                                nSteps - loopDef.loopStart - loopLength;
+                            cycleDef.endOffset =
+                                nSteps - cycleDef.cycleStart - cycleLength;
                         }
                     }
                 }
@@ -122,11 +124,9 @@ export const puzzle8 = new Puzzle({
             iInstruction = (iInstruction + 1) % instructions.length;
         }
 
-        /**
-         * I observed that the loopLength - (loopStart + endOffset) = 0 for all loops.
-         */
+        const cycles = validateCycleAssumptions(cycleDetectedForNodes);
 
-        return loopDetectedForNodes.map((loop) => loop!.loopLength).reduce(lcm);
+        return cycles.map((cycle) => cycle.cycleLength).reduce(lcm);
     },
 });
 
@@ -139,8 +139,33 @@ function getStateKey(state: TravelState) {
     return `${state.iInstruction}:${state.node.name}`;
 }
 
-interface LoopDefinition {
-    loopStart: number;
-    loopLength: number;
+interface CycleDefinition {
+    cycleStart: number;
+    cycleLength: number;
     endOffset?: number;
+}
+
+/**
+ * I observed that the (cycleStart + endOffset) % cycleLength = 0 for all cycles.
+ * This greatly simplifies the problem, but it's not technically general.
+ * Let's just throw an error if this assumption doesn't hold.
+ */
+function validateCycleAssumptions(
+    cycles: (CycleDefinition | null)[]
+): CycleDefinition[] {
+    const validCycles: CycleDefinition[] = [];
+    for (const cycle of cycles) {
+        if (!cycle) {
+            throw new Error('Expected cycle to be defined');
+        }
+        if (cycle.endOffset === undefined) {
+            throw new Error('Expected cycle to be complete');
+        }
+        const { cycleStart, cycleLength, endOffset } = cycle;
+        if ((cycleStart + endOffset) % cycleLength !== 0) {
+            throw new Error('Cycle assumptions invalid');
+        }
+        validCycles.push(cycle);
+    }
+    return validCycles;
 }
