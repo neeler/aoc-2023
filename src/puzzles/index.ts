@@ -5,3 +5,4 @@ export { puzzle4 } from './puzzle4';
 export { puzzle5 } from './puzzle5';
 export { puzzle6 } from './puzzle6';
 export { puzzle7 } from './puzzle7';
+export { puzzle8 } from './puzzle8';
