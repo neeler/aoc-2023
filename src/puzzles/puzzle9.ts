@@ -11,56 +11,28 @@ export const puzzle9 = new Puzzle({
     },
     part1: (histories) => {
         return sum(
-            histories.map((history) => {
-                const lastNumbers: number[] = [];
-                forEachDiffLayer(history, (diffs) => {
-                    const lastNumber = diffs[diffs.length - 1];
-                    if (lastNumber !== undefined) {
-                        lastNumbers.push(lastNumber);
-                    }
-                });
-                return sum(lastNumbers);
-            })
+            histories.map((history) =>
+                extrapolate({
+                    sequence: history,
+                    getNext: (seq) => seq[seq.length - 1],
+                    accumulate: sum,
+                })
+            )
         );
     },
     part2: (histories) => {
         return sum(
-            histories.map((history) => {
-                const firstNumbers: number[] = [];
-                forEachDiffLayer(history, (diffs) => {
-                    const firstNumber = diffs[0];
-                    if (firstNumber !== undefined) {
-                        firstNumbers.push(firstNumber);
-                    }
-                });
-                return firstNumbers
-                    .reverse()
-                    .reduce((delta, x) => x - delta, 0);
-            })
+            histories.map((history) =>
+                extrapolate({
+                    sequence: history,
+                    getNext: (seq) => seq[0],
+                    accumulate: (numbers) =>
+                        numbers.reverse().reduce((delta, x) => x - delta, 0),
+                })
+            )
         );
     },
 });
-
-function forEachDiffLayer(
-    sequence: number[],
-    callback: (diffs: number[]) => void
-) {
-    if (sequence.length < 2) {
-        throw new Error('Sequence must have at least 2 numbers');
-    }
-
-    let previousSequence = sequence;
-    callback(previousSequence);
-
-    let diffs = getDiffs(sequence);
-
-    while (diffs.some((n) => n !== 0)) {
-        previousSequence = diffs;
-        callback(previousSequence);
-
-        diffs = getDiffs(diffs);
-    }
-}
 
 function getDiffs(sequence: number[]) {
     const diffs: number[] = [];
@@ -71,4 +43,30 @@ function getDiffs(sequence: number[]) {
         diffs.push(sequence[i]! - sequence[i - 1]!);
     }
     return diffs;
+}
+
+function extrapolate({
+    sequence,
+    getNext,
+    accumulate,
+    numbersSoFar = [],
+}: {
+    sequence: number[];
+    getNext: (seq: number[]) => number | undefined;
+    accumulate: (numbers: number[]) => number;
+    numbersSoFar?: number[];
+}): number {
+    const nextNumber = getNext(sequence);
+    if (nextNumber !== undefined) {
+        numbersSoFar.push(nextNumber);
+    }
+    if (sequence.every((n) => n === 0)) {
+        return accumulate(numbersSoFar);
+    }
+    return extrapolate({
+        sequence: getDiffs(sequence),
+        getNext,
+        accumulate,
+        numbersSoFar,
+    });
 }
