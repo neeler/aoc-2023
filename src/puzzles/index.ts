@@ -7,3 +7,4 @@ export { puzzle6 } from './puzzle6';
 export { puzzle7 } from './puzzle7';
 export { puzzle8 } from './puzzle8';
 export { puzzle9 } from './puzzle9';
+export { puzzle10 } from './puzzle10';
