@@ -14,8 +14,16 @@ export class Point {
         return this.point[0];
     }
 
+    get col() {
+        return this.x;
+    }
+
     get y() {
         return this.point[1];
+    }
+
+    get row() {
+        return this.y;
     }
 
     toString() {
