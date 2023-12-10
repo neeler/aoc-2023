@@ -1,37 +1,51 @@
+import { CustomSet } from '~/types/CustomSet';
 import { lcm } from '~/util/arithmetic';
 import { Puzzle } from './Puzzle';
 
-class Node {
-    constructor(
-        private readonly config: {
-            name: string;
-            left: string;
-            right: string;
-            nodes: Map<string, Node>;
-        }
-    ) {}
+export class Graph extends CustomSet<Node, string> {
+    constructor() {
+        super({
+            getKey: (node) => node.id,
+        });
+    }
+}
 
-    get name() {
-        return this.config.name;
+class Node {
+    id: string;
+    graph: Graph;
+    isStart: boolean;
+    isEnd: boolean;
+    leftNodeId: string;
+    rightNodeId: string;
+
+    constructor({
+        id,
+        left,
+        right,
+        graph,
+    }: {
+        id: string;
+        left: string;
+        right: string;
+        graph: Graph;
+    }) {
+        this.id = id;
+        this.graph = graph;
+        this.isStart = this.id.endsWith('A');
+        this.isEnd = this.id.endsWith('Z');
+        this.leftNodeId = left;
+        this.rightNodeId = right;
     }
 
     go(direction?: string): Node {
         switch (direction) {
             case 'L':
-                return this.config.nodes.get(this.config.left) ?? this;
+                return this.graph.get(this.leftNodeId) ?? this;
             case 'R':
-                return this.config.nodes.get(this.config.right) ?? this;
+                return this.graph.get(this.rightNodeId) ?? this;
             default:
                 return this;
         }
-    }
-
-    get isStart() {
-        return this.config.name.endsWith('A');
-    }
-
-    get isEnd() {
-        return this.config.name.endsWith('Z');
     }
 }
 
@@ -41,22 +55,22 @@ export const puzzle8 = new Puzzle({
         const [instructions = '', ...lines] = fileData
             .split('\n')
             .filter((s) => s);
-        const nodes = new Map<string, Node>();
+        const graph = new Graph();
         lines.forEach((line) => {
-            const [[name = ''] = [], [left = ''] = [], [right = ''] = []] = [
+            const [[id = ''] = [], [left = ''] = [], [right = ''] = []] = [
                 ...line.matchAll(/\w+/g),
             ];
-            nodes.set(name, new Node({ name, left, right, nodes }));
+            graph.add(new Node({ id, left, right, graph }));
         });
         return {
             instructions: instructions.split(''),
-            nodes,
+            graph,
         };
     },
-    part1: ({ instructions, nodes }) => {
+    part1: ({ instructions, graph }) => {
         let nSteps = 0;
-        let currentNode = nodes.get('AAA');
-        let endNode = nodes.get('ZZZ');
+        let currentNode = graph.get('AAA');
+        let endNode = graph.get('ZZZ');
         let iInstruction = 0;
         while (currentNode && endNode && currentNode !== endNode) {
             const direction = instructions[iInstruction];
@@ -66,9 +80,9 @@ export const puzzle8 = new Puzzle({
         }
         return nSteps;
     },
-    part2: ({ instructions, nodes }) => {
+    part2: ({ instructions, graph }) => {
         let nSteps = 0;
-        let currentNodes = [...nodes.values()].filter((node) => node.isStart);
+        let currentNodes = graph.values().filter((node) => node.isStart);
         let iInstruction = 0;
         const stepsToStateForNodes: Record<string, number>[] = currentNodes.map(
             (node) => {
@@ -136,7 +150,7 @@ interface TravelState {
 }
 
 function getStateKey(state: TravelState) {
-    return `${state.iInstruction}:${state.node.name}`;
+    return `${state.iInstruction}:${state.node.id}`;
 }
 
 interface CycleDefinition {

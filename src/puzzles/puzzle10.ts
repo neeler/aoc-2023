@@ -1,6 +1,6 @@
 import kleur from 'kleur';
-import { CyclicQueue } from '~/types/CyclicQueue';
 import { Grid } from '~/types/Grid';
+import { Queue } from '~/types/Queue';
 import { Puzzle } from './Puzzle';
 
 const neighborValidators: Record<
@@ -195,7 +195,7 @@ export const puzzle10 = new Puzzle({
         /**
          * Calculate the steps away for all nodes on the loop
          */
-        const queue = new CyclicQueue<Node>();
+        const queue = new Queue<Node>();
         queue.enqueue(startNode);
         queue.process((node) => {
             node.neighbors.forEach((neighbor) => {

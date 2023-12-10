@@ -1,4 +1,4 @@
-export class CyclicQueue<T> {
+export class Queue<T> {
     private readonly queue: T[] = [];
 
     enqueue(item: T) {
