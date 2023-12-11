@@ -136,6 +136,18 @@ export class Grid<T extends { toString: () => string }> {
         return acc;
     }
 
+    filter(fn: (data: T, row: number, col: number) => boolean) {
+        let filtered: T[] = [];
+        this.grid.forEach((row, rowIndex) => {
+            row.forEach((node, colIndex) => {
+                if (node && fn(node, rowIndex, colIndex)) {
+                    filtered.push(node);
+                }
+            });
+        });
+        return filtered;
+    }
+
     find(
         fn: (data: T | undefined, row: number, col: number) => boolean
     ): T | undefined {
