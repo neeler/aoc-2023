@@ -10,6 +10,7 @@ import {
     puzzle9,
     puzzle10,
     puzzle11,
+    puzzle12,
 } from '~/puzzles';
 
 async function start() {
@@ -23,7 +24,8 @@ async function start() {
     // await puzzle8.run();
     // await puzzle9.run();
     // await puzzle10.run();
-    await puzzle11.run({
+    // await puzzle11.run();
+    await puzzle12.run({
         example: true,
         mainProblem: true,
     });

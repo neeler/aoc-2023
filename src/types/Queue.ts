@@ -13,4 +13,8 @@ export class Queue<T> {
             }
         }
     }
+
+    get length() {
+        return this.queue.length;
+    }
 }

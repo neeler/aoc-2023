@@ -50,7 +50,7 @@ export class Grid<T extends { toString: () => string }> {
             grid: Grid<TNode>;
         }) => TNode
     ): Grid<TNode> {
-        const width = arr[0]?.length ?? 0;
+        const width = Math.max(...arr.map((row) => row.length));
         const height = arr.length;
 
         if (!width || !height) {
@@ -109,10 +109,6 @@ export class Grid<T extends { toString: () => string }> {
                 ? colIndex
                 : Math.min(this.minXUpdated, colIndex);
         this.grid[rowIndex - this.minY] = row;
-    }
-
-    getRow(y: number) {
-        return this.grid[y - this.minY];
     }
 
     forEach(fn: (data: T | undefined, row: number, col: number) => void) {
@@ -185,6 +181,20 @@ export class Grid<T extends { toString: () => string }> {
             },
             []
         );
+    }
+
+    getRow(y: number) {
+        return this.grid[y - this.minY];
+    }
+
+    forEachRow(fn: (data: (T | undefined)[], rowIndex: number) => void) {
+        this.grid.forEach((row, rowIndex) => {
+            fn(row, rowIndex);
+        });
+    }
+
+    mapRow<TMap>(fn: (data: (T | undefined)[], rowIndex: number) => TMap) {
+        return this.grid.map((row, rowIndex) => fn(row, rowIndex));
     }
 
     draw(drawFn?: (data: T | undefined) => string) {
