@@ -8,6 +8,7 @@ interface State {
 }
 
 const countArrangements = memoize<State, number>({
+    key: ({ line, runs }) => `${line}:${runs}`,
     fn: ({ line, runs }): number => {
         // First handle all the base cases
         // Before we start recursing.
@@ -51,12 +52,14 @@ const countArrangements = memoize<State, number>({
         }
 
         const firstChar = line[0]!;
+        const charsAfterFirst = line.slice(1);
+
         if (firstChar === '.') {
             // If the first character is a working spring,
             // remove it and continue,
             // since it is irrelevant to this computation.
             return countArrangements({
-                line: line.slice(1),
+                line: charsAfterFirst,
                 runs,
             });
         }
@@ -72,18 +75,18 @@ const countArrangements = memoize<State, number>({
                 // Invalid (because we have a busted spring)
                 return 0;
             }
+            if (line[firstRun] === '#') {
+                // If the space after the first run is a busted spring,
+                // this arrangement is invalid,
+                // because we require a working spring to separate runs.
+                return 0;
+            }
             for (let i = 1; i < firstRun; i++) {
                 if (line[i] === '.') {
                     // If there are any working springs in the first run,
                     // this arrangement is invalid.
                     return 0;
                 }
-            }
-            if (line[firstRun] === '#') {
-                // If the space after the first run is a busted spring,
-                // this arrangement is invalid,
-                // because we require a working spring to separate runs.
-                return 0;
             }
 
             // We can successfully fill the first run.
@@ -96,20 +99,19 @@ const countArrangements = memoize<State, number>({
         }
 
         // Otherwise, we must consider both possibilities:
-        // - The first character is a working spring
         // - The first character is a busted spring
+        // - The first character is a working spring (and we remove it)
         return (
             countArrangements({
-                line: `#${line.slice(1)}`,
+                line: `#${charsAfterFirst}`,
                 runs,
             }) +
             countArrangements({
-                line: `.${line.slice(1)}`,
+                line: charsAfterFirst,
                 runs,
             })
         );
     },
-    key: ({ line, runs }) => `${line}:${runs}`,
 });
 
 export const puzzle12 = new Puzzle({

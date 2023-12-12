@@ -1,13 +1,13 @@
 export function memoize<TQuery, TData>({
-    fn,
     key = (query: TQuery) => JSON.stringify(query),
+    fn,
 }: {
-    fn: (query: TQuery) => TData;
     key?: (query: TQuery) => string;
+    fn: (query: TQuery) => TData;
 }) {
     const cache = new Map<string, TData>();
 
-    return (query: TQuery) => {
+    return (query: TQuery): TData => {
         const cacheKey = key(query);
 
         if (cache.has(cacheKey)) {
