@@ -183,7 +183,7 @@ export class Grid<T extends { toString: () => string }> {
     }
 
     getRow(y: number) {
-        return this.grid[y - this.minY];
+        return this.grid[y - this.minY] ?? [];
     }
 
     getColumn(x: number) {

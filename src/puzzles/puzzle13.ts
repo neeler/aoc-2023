@@ -107,10 +107,6 @@ export const puzzle13 = new Puzzle({
                     getVerticalLinesOfReflection(pattern);
                 const initialHorizontalLineOfReflection =
                     getHorizontalLinesOfReflection(pattern);
-                const hasVerticalReflection =
-                    initialVerticalLineOfReflection > 0;
-                const hasHorizontalReflection =
-                    initialHorizontalLineOfReflection > 0;
 
                 // Replace exactly one position in the pattern
                 // with a different symbol, and see if the
@@ -128,38 +124,29 @@ export const puzzle13 = new Puzzle({
 
                         const newVerticalLineOfReflection =
                             getVerticalLinesOfReflection(pattern, {
-                                valuesToIgnore: hasVerticalReflection
+                                valuesToIgnore: initialVerticalLineOfReflection
                                     ? [initialVerticalLineOfReflection]
                                     : [],
                             });
                         const newHorizontalLineOfReflection =
                             getHorizontalLinesOfReflection(pattern, {
-                                valuesToIgnore: hasHorizontalReflection
-                                    ? [initialHorizontalLineOfReflection]
-                                    : [],
+                                valuesToIgnore:
+                                    initialHorizontalLineOfReflection
+                                        ? [initialHorizontalLineOfReflection]
+                                        : [],
                             });
 
-                        if (
-                            newVerticalLineOfReflection &&
-                            (hasHorizontalReflection ||
-                                newVerticalLineOfReflection !==
-                                    initialVerticalLineOfReflection)
-                        ) {
-                            node.reset();
-                            return newVerticalLineOfReflection;
-                        }
-
-                        if (
-                            newHorizontalLineOfReflection &&
-                            (hasVerticalReflection ||
-                                newHorizontalLineOfReflection !==
-                                    initialHorizontalLineOfReflection)
-                        ) {
-                            node.reset();
-                            return newHorizontalLineOfReflection * 100;
-                        }
-
                         node.reset();
+
+                        if (
+                            newHorizontalLineOfReflection ||
+                            newVerticalLineOfReflection
+                        ) {
+                            return (
+                                newVerticalLineOfReflection +
+                                newHorizontalLineOfReflection * 100
+                            );
+                        }
                     }
                 }
 
@@ -191,11 +178,10 @@ function getVerticalLinesOfReflection(
         );
         let isReflected = true;
         for (let dx = 1; dx <= maxDx; dx++) {
-            const leftColumn = grid.getColumn(nColumnsLeftOfReflection - dx);
-            const rightColumn = grid.getColumn(
-                nColumnsLeftOfReflection + dx - 1
-            );
-            if (leftColumn.toString() !== rightColumn.toString()) {
+            if (
+                grid.getColumn(nColumnsLeftOfReflection - dx).toString() !==
+                grid.getColumn(nColumnsLeftOfReflection + dx - 1).toString()
+            ) {
                 isReflected = false;
                 break;
             }
@@ -230,9 +216,10 @@ function getHorizontalLinesOfReflection(
         );
         let isReflected = true;
         for (let dy = 1; dy <= maxDy; dy++) {
-            const rowAbove = grid.getRow(nRowsAboveReflection - dy);
-            const rowBelow = grid.getRow(nRowsAboveReflection + dy - 1);
-            if (rowAbove?.toString() !== rowBelow?.toString()) {
+            if (
+                grid.getRow(nRowsAboveReflection - dy).toString() !==
+                grid.getRow(nRowsAboveReflection + dy - 1).toString()
+            ) {
                 isReflected = false;
                 break;
             }
