@@ -10,3 +10,4 @@ export { puzzle9 } from './puzzle9';
 export { puzzle10 } from './puzzle10';
 export { puzzle11 } from './puzzle11';
 export { puzzle12 } from './puzzle12';
+export { puzzle13 } from './puzzle13';

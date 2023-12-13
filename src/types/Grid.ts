@@ -1,5 +1,4 @@
 import kleur from 'kleur';
-import { Point } from '~/types/Point';
 
 export class Grid<T extends { toString: () => string }> {
     private readonly grid: (T | undefined)[][] = [];
@@ -185,6 +184,10 @@ export class Grid<T extends { toString: () => string }> {
 
     getRow(y: number) {
         return this.grid[y - this.minY];
+    }
+
+    getColumn(x: number) {
+        return this.grid.map((row) => row[x - this.minX]);
     }
 
     forEachRow(fn: (data: (T | undefined)[], rowIndex: number) => void) {
