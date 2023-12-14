@@ -1,3 +1,5 @@
+import kleur from 'kleur';
+
 /**
  * A looper that is aware of cycles in the output of the configured action function.
  *
@@ -20,6 +22,10 @@ export class CycleAwareLooper {
              * Should return a string that represents the state of the system.
              */
             action: () => string;
+            /**
+             * Whether to log debug information.
+             */
+            debug?: boolean;
         }
     ) {}
 
@@ -37,6 +43,13 @@ export class CycleAwareLooper {
                 if (this.cycleStart === undefined) {
                     this.cycleStart = this.previousStates.get(iterationKey)!;
                     this.cycleLength = iCycle - this.cycleStart;
+                    if (this.config.debug) {
+                        console.log(
+                            kleur.yellow(`Cycle detected at:\t${iCycle}
+Cycle length:\t\t${this.cycleLength}
+`)
+                        );
+                    }
 
                     const nRemainingCycles = this.config.nIterations - iCycle;
                     iCycle +=
