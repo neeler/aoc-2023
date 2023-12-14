@@ -3,6 +3,69 @@ import { Puzzle } from './Puzzle';
 
 type RockSymbol = '.' | '#' | 'O';
 
+export const puzzle14 = new Puzzle({
+    day: 14,
+    parseInput: (data) => data,
+    part1: (fileData) => {
+        const grid = RockGrid.fromFileData(fileData);
+        grid.tilt('up');
+        return grid.northLoad;
+    },
+    part2: (fileData) => {
+        const nCycles = 1e9;
+
+        const grid = RockGrid.fromFileData(fileData);
+
+        const previousStates = new Map<string, number>();
+
+        let cycleStart: number | undefined;
+        let cycleLength: number | undefined;
+
+        /**
+         * Run the simulation for the given number of cycles.
+         * If we detect a cycle, we can skip ahead to the end of the cycle.
+         * If we don't detect a cycle, we can just run the simulation normally.
+         * Luckily, there are indeed cycles that appear relatively quickly.
+         *
+         * This uses a simple string key to represent the state of the grid.
+         * It's a big string, but it's still fast enough to work.
+         */
+        for (let iCycle = 0; iCycle < nCycles; iCycle++) {
+            grid.tilt('up');
+            grid.tilt('left');
+            grid.tilt('down');
+            grid.tilt('right');
+
+            const gridKey = grid.key;
+
+            if (previousStates.has(gridKey)) {
+                if (cycleStart === undefined) {
+                    cycleStart = previousStates.get(gridKey)!;
+                    cycleLength = iCycle - cycleStart;
+
+                    const nRemainingCycles = nCycles - iCycle;
+                    iCycle +=
+                        Math.floor(nRemainingCycles / cycleLength) *
+                        cycleLength;
+                }
+            }
+
+            previousStates.set(gridKey, iCycle);
+        }
+
+        return grid.northLoad;
+    },
+});
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+const DirectionDiff = {
+    up: { row: -1, col: 0 },
+    down: { row: 1, col: 0 },
+    left: { row: 0, col: -1 },
+    right: { row: 0, col: 1 },
+};
+
 class Node {
     private symbol: RockSymbol;
 
@@ -11,7 +74,6 @@ class Node {
             row: number;
             col: number;
             initialValue?: string;
-            grid: Grid<Node>;
         }
     ) {
         switch (config.initialValue) {
@@ -54,210 +116,143 @@ class Node {
     }
 }
 
-export const puzzle14 = new Puzzle({
-    day: 14,
-    parseInput: (data) => data,
-    part1: (fileData) => {
-        const grid = buildGrid(fileData);
-        slideGrid({
-            grid,
-            direction: 'up',
-        });
-        return calculateNorthLoad(grid);
-    },
-    part2: (fileData) => {
-        const nCycles = 1e9;
+class RockGrid extends Grid<Node> {
+    get northLoad() {
+        return this.reduce((acc, node) => {
+            return acc + (node?.hasRoundRock ? this.height - node.row : 0);
+        }, 0);
+    }
 
-        const grid = buildGrid(fileData);
+    /**
+     * Moves the rock in the given direction, if possible.
+     * Returns the node that the rock was moved to.
+     */
+    moveRock({ node, direction }: { node: Node; direction: Direction }) {
+        if (!node.hasRoundRock) {
+            return node;
+        }
 
-        const previousStates = new Map<string, number>();
+        // Get neighbor in direction
+        const diff = DirectionDiff[direction];
+        const neighbor = this.getAt(node.row + diff.row, node.col + diff.col);
+        if (!neighbor?.isEmpty) {
+            return node;
+        }
 
-        let cycleStart: number | undefined;
-        let cycleLength: number | undefined;
+        // If neighbor is empty, move node in that direction
+        node.removeRoundRock();
+        neighbor.placeRoundRock();
 
-        /**
-         * Run the simulation for the given number of cycles.
-         * If we detect a cycle, we can skip ahead to the end of the cycle.
-         * If we don't detect a cycle, we can just run the simulation normally.
-         * Luckily, there are indeed cycles that appear relatively quickly.
-         *
-         * This uses a simple string key to represent the state of the grid.
-         * It's a big string, but it's still fast enough to work.
-         */
-        for (let iCycle = 0; iCycle < nCycles; iCycle++) {
-            slideGrid({
-                grid,
-                direction: 'up',
-            });
-            slideGrid({
-                grid,
-                direction: 'left',
-            });
-            slideGrid({
-                grid,
-                direction: 'down',
-            });
-            slideGrid({
-                grid,
-                direction: 'right',
-            });
+        return neighbor;
+    }
 
-            const gridKey = grid.key;
-
-            if (previousStates.has(gridKey)) {
-                if (cycleStart === undefined) {
-                    cycleStart = previousStates.get(gridKey)!;
-                    cycleLength = iCycle - cycleStart;
-
-                    const nRemainingCycles = nCycles - iCycle;
-                    iCycle +=
-                        Math.floor(nRemainingCycles / cycleLength) *
-                        cycleLength;
+    /**
+     * Slides the grid in the given direction, moving rocks as needed.
+     *
+     * Works by moving rows or columns one at a time,
+     * cascading from the top, bottom, left, or right,
+     * depending on the direction of movement.
+     *
+     * Works iteratively, moving rocks one whole map at a time,
+     * until no more rocks can be moved.
+     *
+     * When any given rock can't be moved anymore,
+     * it is removed from the list of rocks to consider
+     * to avoid unnecessary iterations.
+     */
+    tilt(direction: Direction) {
+        let rocks: Node[] = [];
+        const addRocks = (nodes?: (Node | undefined)[]) => {
+            nodes?.forEach((node) => {
+                if (node?.hasRoundRock) {
+                    rocks.push(node);
                 }
-            }
-
-            previousStates.set(gridKey, iCycle);
-        }
-
-        return calculateNorthLoad(grid);
-    },
-});
-
-function calculateNorthLoad(grid: Grid<Node>) {
-    return grid.reduce((acc, node) => {
-        return acc + (node?.hasRoundRock ? grid.height - node.row : 0);
-    }, 0);
-}
-
-type Direction = 'up' | 'down' | 'left' | 'right';
-
-const DirectionDiff = {
-    up: { row: -1, col: 0 },
-    down: { row: 1, col: 0 },
-    left: { row: 0, col: -1 },
-    right: { row: 0, col: 1 },
-};
-
-/**
- * Slides the grid in the given direction, moving rocks as needed.
- *
- * Works by moving rows or columns one at a time,
- * cascading from the top, bottom, left, or right,
- * depending on the direction of movement.
- *
- * Works iteratively, moving rocks one whole map at a time,
- * until no more rocks can be moved.
- *
- * When any given rock can't be moved anymore,
- * it is removed from the list of rocks to consider
- * to avoid unnecessary iterations.
- */
-function slideGrid({
-    grid,
-    direction,
-}: {
-    grid: Grid<Node>;
-    direction: Direction;
-}) {
-    let rocks: Node[] = [];
-    const addRocks = (nodes?: (Node | undefined)[]) => {
-        nodes?.forEach((node) => {
-            if (node?.hasRoundRock) {
-                rocks.push(node);
-            }
-        });
-    };
-
-    switch (direction) {
-        case 'up': {
-            // Move rows one at a time, starting from the top
-            for (let row = 0; row < grid.height; row++) {
-                addRocks(grid.getRow(row));
-            }
-            break;
-        }
-        case 'down': {
-            // Move rows one at a time, starting from the bottom
-            for (let row = grid.height - 1; row >= 0; row--) {
-                addRocks(grid.getRow(row));
-            }
-            break;
-        }
-        case 'left': {
-            // Move cols one at a time, starting from the left
-            for (let col = 0; col < grid.width; col++) {
-                addRocks(grid.getColumn(col));
-            }
-            break;
-        }
-        case 'right': {
-            // Move cols one at a time, starting from the right
-            for (let col = grid.width - 1; col >= 0; col--) {
-                addRocks(grid.getColumn(col));
-            }
-            break;
-        }
-    }
-
-    let changed: boolean;
-    do {
-        changed = false;
-
-        const rocksForLoop = rocks.slice();
-        rocks = [];
-
-        for (const rock of rocksForLoop) {
-            const updatedNode = moveIfPossible({
-                grid,
-                node: rock,
-                direction,
             });
-            changed = changed || updatedNode !== rock;
-            rocks.push(updatedNode);
+        };
+
+        switch (direction) {
+            case 'up': {
+                // Move rows one at a time, starting from the top
+                for (let row = 0; row < this.height; row++) {
+                    addRocks(this.getRow(row));
+                }
+                break;
+            }
+            case 'down': {
+                // Move rows one at a time, starting from the bottom
+                for (let row = this.height - 1; row >= 0; row--) {
+                    addRocks(this.getRow(row));
+                }
+                break;
+            }
+            case 'left': {
+                // Move cols one at a time, starting from the left
+                for (let col = 0; col < this.width; col++) {
+                    addRocks(this.getColumn(col));
+                }
+                break;
+            }
+            case 'right': {
+                // Move cols one at a time, starting from the right
+                for (let col = this.width - 1; col >= 0; col--) {
+                    addRocks(this.getColumn(col));
+                }
+                break;
+            }
         }
-    } while (changed);
-}
 
-function moveIfPossible({
-    grid,
-    node,
-    direction,
-}: {
-    grid: Grid<Node>;
-    node: Node;
-    direction: Direction;
-}) {
-    if (!node.hasRoundRock) {
-        return node;
+        let changed: boolean;
+        do {
+            changed = false;
+
+            const rocksForLoop = rocks.slice();
+            rocks = [];
+
+            for (const rock of rocksForLoop) {
+                const updatedNode = this.moveRock({
+                    node: rock,
+                    direction,
+                });
+                changed = changed || updatedNode !== rock;
+                rocks.push(updatedNode);
+            }
+        } while (changed);
     }
 
-    // Get neighbor in direction
-    const diff = DirectionDiff[direction];
-    const neighbor = grid.getAt(node.row + diff.row, node.col + diff.col);
-    if (!neighbor?.isEmpty) {
-        return node;
-    }
-
-    // If neighbor is empty, move node in that direction
-    node.removeRoundRock();
-    neighbor.placeRoundRock();
-
-    return neighbor;
-}
-
-function buildGrid(fileData: string) {
-    return Grid.from2DArray<string, Node>(
-        fileData
+    static fromFileData(fileData: string): RockGrid {
+        const stringGrid = fileData
             .split('\n')
             .filter((s) => s)
-            .map((s) => s.split('')),
-        (node) => {
-            return new Node({
-                row: node.row,
-                col: node.col,
-                initialValue: node.input,
-                grid: node.grid,
-            });
+            .map((s) => s.split(''));
+
+        const width = Math.max(...stringGrid.map((row) => row.length));
+        const height = stringGrid.length;
+
+        if (!width || !height) {
+            throw new Error('Invalid input dimensions');
         }
-    );
+
+        const grid = new RockGrid({
+            minX: 0,
+            minY: 0,
+            maxX: width - 1,
+            maxY: height - 1,
+        });
+
+        stringGrid.forEach((row, iRow) => {
+            row.forEach((initialValue, iCol) => {
+                grid.setAt(
+                    iRow,
+                    iCol,
+                    new Node({
+                        row: iRow,
+                        col: iCol,
+                        initialValue,
+                    })
+                );
+            });
+        });
+
+        return grid;
+    }
 }
