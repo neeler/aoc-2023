@@ -1,3 +1,4 @@
+import { CycleAwareLooper } from '~/types/CycleAwareLooper';
 import { Grid } from '~/types/Grid';
 import { Puzzle } from './Puzzle';
 
@@ -16,11 +17,6 @@ export const puzzle14 = new Puzzle({
 
         const grid = RockGrid.fromFileData(fileData);
 
-        const previousStates = new Map<string, number>();
-
-        let cycleStart: number | undefined;
-        let cycleLength: number | undefined;
-
         /**
          * Run the simulation for the given number of cycles.
          * If we detect a cycle, we can skip ahead to the end of the cycle.
@@ -30,28 +26,18 @@ export const puzzle14 = new Puzzle({
          * This uses a simple string key to represent the state of the grid.
          * It's a big string, but it's still fast enough to work.
          */
-        for (let iCycle = 0; iCycle < nCycles; iCycle++) {
-            grid.tilt('up');
-            grid.tilt('left');
-            grid.tilt('down');
-            grid.tilt('right');
+        const cycleDetector = new CycleAwareLooper({
+            nIterations: nCycles,
+            action: () => {
+                grid.tilt('up');
+                grid.tilt('left');
+                grid.tilt('down');
+                grid.tilt('right');
 
-            const gridKey = grid.key;
-
-            if (previousStates.has(gridKey)) {
-                if (cycleStart === undefined) {
-                    cycleStart = previousStates.get(gridKey)!;
-                    cycleLength = iCycle - cycleStart;
-
-                    const nRemainingCycles = nCycles - iCycle;
-                    iCycle +=
-                        Math.floor(nRemainingCycles / cycleLength) *
-                        cycleLength;
-                }
-            }
-
-            previousStates.set(gridKey, iCycle);
-        }
+                return grid.key;
+            },
+        });
+        cycleDetector.run();
 
         return grid.northLoad;
     },
