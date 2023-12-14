@@ -200,26 +200,48 @@ export class Grid<T extends { toString: () => string }> {
         return this.grid.map((row, rowIndex) => fn(row, rowIndex));
     }
 
+    toString(drawFn?: (data: T | undefined) => string) {
+        const padding = Math.max(4, this.height.toString().length + 1);
+
+        return this.grid
+            .map(
+                (row, y) =>
+                    `${kleur.cyan(
+                        (y + this.minY).toString().padStart(padding, ' ')
+                    )} ${row
+                        .slice(
+                            (this.minXUpdated ?? 0) > 0 ? this.minXUpdated : 0
+                        )
+                        .map(
+                            (d, x) =>
+                                (drawFn ?? this.drawFn)?.(d) ??
+                                d?.toString?.() ??
+                                this.blank
+                        )
+                        .join('')}`
+            )
+            .join('\n');
+    }
+
+    get key() {
+        return this.grid
+            .map((row, y) =>
+                row
+                    .slice((this.minXUpdated ?? 0) > 0 ? this.minXUpdated : 0)
+                    .map(
+                        (d, x) =>
+                            this.drawFn?.(d) ?? d?.toString?.() ?? this.blank
+                    )
+                    .join('')
+            )
+            .join('');
+    }
+
     draw(drawFn?: (data: T | undefined) => string) {
         const padding = Math.max(4, this.height.toString().length + 1);
 
         console.log(`
-${this.grid
-    .map(
-        (row, y) =>
-            `${kleur.cyan(
-                (y + this.minY).toString().padStart(padding, ' ')
-            )} ${row
-                .slice((this.minXUpdated ?? 0) > 0 ? this.minXUpdated : 0)
-                .map(
-                    (d, x) =>
-                        (drawFn ?? this.drawFn)?.(d) ??
-                        d?.toString?.() ??
-                        this.blank
-                )
-                .join('')}`
-    )
-    .join('\n')}
+${this.toString(drawFn)}
 `);
     }
 }
