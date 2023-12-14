@@ -6,17 +6,47 @@ type RockSymbol = '.' | '#' | 'O';
 
 export const puzzle14 = new Puzzle({
     day: 14,
-    parseInput: (data) => data,
-    part1: (fileData) => {
-        const grid = RockGrid.fromFileData(fileData);
+    parseInput: (data) => {
+        const stringGrid = data
+            .split('\n')
+            .filter((s) => s)
+            .map((s) => s.split(''));
+
+        const width = Math.max(...stringGrid.map((row) => row.length));
+        const height = stringGrid.length;
+
+        if (!width || !height) {
+            throw new Error('Invalid input dimensions');
+        }
+
+        const grid = new RockGrid({
+            minX: 0,
+            minY: 0,
+            maxX: width - 1,
+            maxY: height - 1,
+        });
+
+        stringGrid.forEach((row, iRow) => {
+            row.forEach((initialValue, iCol) => {
+                grid.setAt(
+                    iRow,
+                    iCol,
+                    new Node({
+                        row: iRow,
+                        col: iCol,
+                        initialValue,
+                    })
+                );
+            });
+        });
+
+        return grid;
+    },
+    part1: (grid) => {
         grid.tilt('up');
         return grid.northLoad;
     },
-    part2: (fileData) => {
-        const nCycles = 1e9;
-
-        const grid = RockGrid.fromFileData(fileData);
-
+    part2: (grid) => {
         /**
          * Run the simulation for the given number of cycles.
          * If we detect a cycle, we can skip ahead to the end of the cycle.
@@ -27,7 +57,7 @@ export const puzzle14 = new Puzzle({
          * It's a big string, but it's still fast enough to work.
          */
         const cycleDetector = new CycleAwareLooper({
-            nIterations: nCycles,
+            nIterations: 1e9,
             action: () => {
                 grid.tilt('up');
                 grid.tilt('left');
@@ -203,42 +233,5 @@ class RockGrid extends Grid<Node> {
                 rocks.push(updatedNode);
             }
         } while (changed);
-    }
-
-    static fromFileData(fileData: string): RockGrid {
-        const stringGrid = fileData
-            .split('\n')
-            .filter((s) => s)
-            .map((s) => s.split(''));
-
-        const width = Math.max(...stringGrid.map((row) => row.length));
-        const height = stringGrid.length;
-
-        if (!width || !height) {
-            throw new Error('Invalid input dimensions');
-        }
-
-        const grid = new RockGrid({
-            minX: 0,
-            minY: 0,
-            maxX: width - 1,
-            maxY: height - 1,
-        });
-
-        stringGrid.forEach((row, iRow) => {
-            row.forEach((initialValue, iCol) => {
-                grid.setAt(
-                    iRow,
-                    iCol,
-                    new Node({
-                        row: iRow,
-                        col: iCol,
-                        initialValue,
-                    })
-                );
-            });
-        });
-
-        return grid;
     }
 }

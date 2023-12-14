@@ -32,27 +32,27 @@ export class Puzzle<TData = string> {
         return this.config.parseInput(fileData.trim(), options);
     }
 
+    getExampleData() {
+        const data = readDataFile(`puzzle${this.config.day}-example.txt`);
+        if (!data) {
+            return undefined;
+        }
+        return this.processFile(data, { example: true });
+    }
+
+    getPuzzleData() {
+        const data = readDataFile(`puzzle${this.config.day}-input.txt`);
+        if (!data) {
+            return undefined;
+        }
+        return this.processFile(data, { puzzle: true });
+    }
+
     async run({
         example = false,
         mainProblem = true,
     }: { example?: boolean; mainProblem?: boolean } = {}) {
-        let exampleData: TData | undefined;
-        if (example) {
-            const data = readDataFile(`puzzle${this.config.day}-example.txt`);
-            if (data) {
-                exampleData = this.processFile(data, { example: true });
-            }
-        }
-
-        let puzzleData: TData | undefined;
-        if (mainProblem) {
-            const data = readDataFile(`puzzle${this.config.day}-input.txt`);
-            if (data) {
-                puzzleData = this.processFile(data, { puzzle: true });
-            }
-        }
-
-        if (!(exampleData || puzzleData)) {
+        if (!(example || mainProblem)) {
             return;
         }
 
@@ -64,6 +64,7 @@ AoC ${year} Day ${this.config.day}
         );
 
         if (!this.config.skipPart1) {
+            const exampleData = example ? this.getExampleData() : undefined;
             if (exampleData) {
                 const result = await (
                     this.config.example1 ?? this.config.part1
@@ -77,6 +78,7 @@ AoC ${year} Day ${this.config.day}
                 });
             }
 
+            const puzzleData = mainProblem ? this.getPuzzleData() : undefined;
             if (puzzleData) {
                 timer.reset();
 
@@ -92,6 +94,7 @@ AoC ${year} Day ${this.config.day}
         }
 
         if (!this.config.skipPart2) {
+            const exampleData = example ? this.getExampleData() : undefined;
             if (exampleData) {
                 const result = await (
                     this.config.example2 ?? this.config.part2
@@ -105,6 +108,7 @@ AoC ${year} Day ${this.config.day}
                 });
             }
 
+            const puzzleData = mainProblem ? this.getPuzzleData() : undefined;
             if (puzzleData) {
                 timer.reset();
 
