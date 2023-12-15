@@ -27,10 +27,7 @@ export class CustomSet<TData, TKey = TData> {
 
     delete(item: TData) {
         const key = this.config.getKey(item);
-
-        if (this.itemMap.has(key)) {
-            this.itemMap.delete(key);
-        }
+        this.deleteKey(key);
     }
 
     clear() {
@@ -38,7 +35,17 @@ export class CustomSet<TData, TKey = TData> {
     }
 
     has(item: TData) {
-        return this.itemMap.has(this.config.getKey(item));
+        return this.hasKey(this.config.getKey(item));
+    }
+
+    hasKey(key: TKey) {
+        return this.itemMap.has(key);
+    }
+
+    deleteKey(key: TKey) {
+        if (this.itemMap.has(key)) {
+            this.itemMap.delete(key);
+        }
     }
 
     keys() {

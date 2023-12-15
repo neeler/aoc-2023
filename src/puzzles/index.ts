@@ -12,3 +12,4 @@ export { puzzle11 } from './puzzle11';
 export { puzzle12 } from './puzzle12';
 export { puzzle13 } from './puzzle13';
 export { puzzle14 } from './puzzle14';
+export { puzzle15 } from './puzzle15';
