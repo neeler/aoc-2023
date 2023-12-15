@@ -1,4 +1,3 @@
-import { CustomSet } from '~/types/CustomSet';
 import { sum } from '~/util/arithmetic';
 import { Puzzle } from './Puzzle';
 
@@ -11,17 +10,19 @@ export const puzzle15 = new Puzzle({
         return sum(steps.map((s) => runHASH(s)));
     },
     part2: (steps) => {
-        const boxes = Array.from({ length: 256 }, () => new Box());
+        const boxes = Array.from(
+            { length: 256 },
+            () => new Map<string, number>()
+        );
         steps.forEach((step) => {
             runHASHMAP(boxes, step);
         });
         return sum(
             boxes.map((box, iBox) => {
-                const lenses = box.values();
                 return sum(
-                    lenses.map(
-                        (lens, iLens) =>
-                            (iBox + 1) * (iLens + 1) * lens.focalLength
+                    [...box.values()].map(
+                        (focalLength, iLens) =>
+                            (iBox + 1) * (iLens + 1) * focalLength
                     )
                 );
             })
@@ -44,30 +45,8 @@ function runHASH(str: string) {
     return value;
 }
 
-class Box extends CustomSet<Lens, string> {
-    constructor() {
-        super({
-            getKey: (lens) => lens.label,
-        });
-    }
-}
-
-class Lens {
-    readonly label: string;
-    focalLength: number;
-
-    constructor(config: { label: string; focalLength: number }) {
-        this.label = config.label;
-        this.focalLength = config.focalLength;
-    }
-
-    setFocalLength(focalLength: number) {
-        this.focalLength = focalLength;
-    }
-}
-
-function runHASHMAP(boxes: Box[], str: string) {
-    const [, label = '', operator = '', flString = ''] =
+function runHASHMAP(boxes: Map<string, number>[], str: string) {
+    const [, label = '', operator = '', focalLength = ''] =
         str.match(/([^-=]+)([=-])(\d+)?/) ?? [];
 
     const boxIndex = runHASH(label);
@@ -82,27 +61,13 @@ function runHASHMAP(boxes: Box[], str: string) {
         );
     }
 
-    const existingLens = box.get(label);
-
     switch (operator) {
         case '=': {
-            const focalLength = parseInt(flString, 10);
-            if (existingLens) {
-                existingLens.setFocalLength(focalLength);
-            } else {
-                box.add(
-                    new Lens({
-                        label,
-                        focalLength,
-                    })
-                );
-            }
+            box.set(label, parseInt(focalLength, 10));
             break;
         }
         case '-': {
-            if (existingLens) {
-                box.delete(existingLens);
-            }
+            box.delete(label);
             break;
         }
         default: {
