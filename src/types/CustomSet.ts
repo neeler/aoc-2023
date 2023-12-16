@@ -4,7 +4,7 @@
  *
  * Really it's a wrapper around a Map.
  */
-export class CustomSet<TData, TKey = TData> {
+export class CustomSet<TData, TKey = string> {
     private itemMap = new Map<TKey, TData>();
 
     constructor(

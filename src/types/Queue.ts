@@ -14,6 +14,10 @@ export class Queue<T> {
         }
     }
 
+    reset() {
+        this.queue.length = 0;
+    }
+
     get length() {
         return this.queue.length;
     }
