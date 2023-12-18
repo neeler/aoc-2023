@@ -15,6 +15,7 @@ import {
     puzzle14,
     puzzle15,
     puzzle16,
+    puzzle17,
 } from '~/puzzles';
 
 async function start() {
@@ -33,7 +34,8 @@ async function start() {
     // await puzzle13.run();
     // await puzzle14.run();
     // await puzzle15.run();
-    await puzzle16.run({
+    // await puzzle16.run();
+    await puzzle17.run({
         example: true,
         mainProblem: true,
     });

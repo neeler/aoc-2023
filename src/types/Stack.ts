@@ -13,4 +13,8 @@ export class Stack<T> {
             }
         }
     }
+
+    get length() {
+        return this.stack.length;
+    }
 }
