@@ -45,10 +45,9 @@ export const puzzle17 = new Puzzle({
         let minHeatLoss = Infinity;
 
         const priorityQueue = new PriorityQueue<WalkState>({
-            priority: (item) => item.totalHeatLoss,
-            ascending: false,
+            compare: (a, b) => a.totalHeatLoss - b.totalHeatLoss,
         });
-        priorityQueue.enqueue({
+        priorityQueue.add({
             blocks: [startBlock],
             directions: [],
             totalHeatLoss: 0,
@@ -117,13 +116,12 @@ export const puzzle17 = new Puzzle({
                 }
 
                 bestSeenAtState.set(stateKey, nextState.totalHeatLoss);
-                priorityQueue.enqueue(nextState);
+                priorityQueue.add(nextState);
             }
         });
 
         return minHeatLoss;
     },
-    skipPart1: true,
     part2: ({ startBlock, endBlock }) => {
         const nMinInDirection = 4;
         const nMaxInDirection = 10;
@@ -133,10 +131,9 @@ export const puzzle17 = new Puzzle({
         let minHeatLoss = Infinity;
 
         const priorityQueue = new PriorityQueue<WalkState>({
-            priority: (item) => item.totalHeatLoss,
-            ascending: false,
+            compare: (a, b) => a.totalHeatLoss - b.totalHeatLoss,
         });
-        priorityQueue.enqueue({
+        priorityQueue.add({
             blocks: [startBlock],
             directions: [],
             totalHeatLoss: 0,
@@ -212,7 +209,7 @@ export const puzzle17 = new Puzzle({
                 }
 
                 bestSeenAtState.set(stateKey, nextState.totalHeatLoss);
-                priorityQueue.enqueue(nextState);
+                priorityQueue.add(nextState);
             }
         });
 
