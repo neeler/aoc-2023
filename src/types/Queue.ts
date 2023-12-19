@@ -1,7 +1,9 @@
-export class Queue<T> {
-    private readonly queue: T[] = [];
+import { ProcessStruct } from '~/types/ProcessStruct';
 
-    enqueue(item: T) {
+export class Queue<T> implements ProcessStruct<T> {
+    readonly queue: T[] = [];
+
+    add(item: T) {
         this.queue.push(item);
     }
 

@@ -196,7 +196,7 @@ export const puzzle10 = new Puzzle({
          * Calculate the steps away for all nodes on the loop
          */
         const queue = new Queue<Node>();
-        queue.enqueue(startNode);
+        queue.add(startNode);
         queue.process((node) => {
             node.neighbors.forEach((neighbor) => {
                 if (
@@ -204,7 +204,7 @@ export const puzzle10 = new Puzzle({
                     neighbor.stepsAway > node.stepsAway + 1
                 ) {
                     neighbor.stepsAway = node.stepsAway + 1;
-                    queue.enqueue(neighbor);
+                    queue.add(neighbor);
                 }
             });
         });

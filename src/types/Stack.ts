@@ -1,7 +1,9 @@
-export class Stack<T> {
+import { ProcessStruct } from '~/types/ProcessStruct';
+
+export class Stack<T> implements ProcessStruct<T> {
     private readonly stack: T[] = [];
 
-    push(item: T) {
+    add(item: T) {
         this.stack.push(item);
     }
 
@@ -12,6 +14,10 @@ export class Stack<T> {
                 fn(node);
             }
         }
+    }
+
+    reset() {
+        this.stack.length = 0;
     }
 
     get length() {

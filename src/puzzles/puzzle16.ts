@@ -171,7 +171,7 @@ class Contraption {
         /**
          * Add the starting tile to the queue.
          */
-        this.queue.enqueue({ tile, direction });
+        this.queue.add({ tile, direction });
 
         /**
          * Process the queue.
@@ -213,7 +213,7 @@ class Contraption {
                     /**
                      * Add the tile to the queue.
                      */
-                    this.queue.enqueue({
+                    this.queue.add({
                         tile: nextTile,
                         direction,
                     });

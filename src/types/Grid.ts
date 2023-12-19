@@ -1,6 +1,6 @@
 import kleur from 'kleur';
 
-export class Grid<T extends { toString: () => string }> {
+export class Grid<T> {
     private readonly grid: (T | undefined)[][] = [];
     private readonly minX: number;
     private readonly minY: number;
@@ -238,8 +238,6 @@ export class Grid<T extends { toString: () => string }> {
     }
 
     draw(drawFn?: (data: T | undefined) => string) {
-        const padding = Math.max(4, this.height.toString().length + 1);
-
         console.log(`
 ${this.toString(drawFn)}
 `);
