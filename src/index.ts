@@ -41,8 +41,6 @@ async function start() {
         example: true,
         mainProblem: true,
     });
-
-    // 35016 too low
 }
 
 start();
