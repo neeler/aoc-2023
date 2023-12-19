@@ -1,3 +1,4 @@
+import { CustomSet } from '~/types/CustomSet';
 import { Point } from '~/types/Point';
 import { Stack } from '~/types/Stack';
 import { VirtualGrid } from '~/types/VirtualGrid';
@@ -17,39 +18,47 @@ export const puzzle18 = new Puzzle({
         );
     },
     part1: (matches) => {
-        const terrainMap = new TerrainMap();
+        const instructions: Instruction[] = matches.map(
+            ([direction, nSteps]) => ({
+                direction: toDirection(direction),
+                nSteps: parseInt(nSteps, 10),
+            })
+        );
 
-        terrainMap
-            .processInstructions(
-                matches.map(([direction, nSteps]) => ({
-                    direction: toDirection(direction),
-                    nSteps: parseInt(nSteps, 10),
-                }))
-            )
-            .fillEdges()
-            .trenchInnards();
+        const terrainMap = new TerrainMap();
+        terrainMap.processInstructions(instructions);
+
+        terrainMap.fillEdges().trenchInnards();
 
         return terrainMap.trenchCount;
     },
     part2: (matches) => {
-        const terrainMap = new TerrainMap();
+        // const instructions: Instruction[] = matches.map(
+        //     ([direction, nSteps]) => ({
+        //         direction: toDirection(direction),
+        //         nSteps: parseInt(nSteps, 10),
+        //     })
+        // );
+        //
+        // const terrainMap = new GiantTerrainMap();
+        // terrainMap.processInstructions(instructions);
+        //
+        // return terrainMap.trenchCount;
 
-        terrainMap
-            .processInstructions(
-                matches.map(([, , hexCode]) => ({
-                    direction: toDirection(hexCode[5]),
-                    nSteps: parseInt(hexCode.slice(0, 5), 16),
-                }))
-            )
-            .fillEdges()
-            .trenchInnards();
+        const instructions: Instruction[] = matches.map(([, , hexCode]) => ({
+            direction: toDirection(hexCode[5]),
+            nSteps: parseInt(hexCode.slice(0, 5), 16),
+        }));
+
+        const terrainMap = new GiantTerrainMap();
+        terrainMap.processInstructions(instructions);
 
         return terrainMap.trenchCount;
     },
 });
 
 class TerrainMap {
-    grid = new VirtualGrid<Terrain>({
+    readonly grid = new VirtualGrid<Terrain>({
         getBlank: (row, col) => new Terrain(new Point(col, row)),
     });
 
@@ -125,10 +134,151 @@ class TerrainMap {
         );
     }
 
-    reset() {
-        this.grid.reset();
+    draw() {
+        this.grid.draw();
     }
 }
+
+class GiantTerrainMap {
+    trenchedRanges: {
+        direction: Direction;
+        range: Range;
+    }[] = [];
+    verticalRanges: {
+        direction: Direction;
+        range: Range;
+    }[] = [];
+    pointsInRange = new CustomSet<Point>({
+        getKey: (point) => point.toString(),
+    });
+
+    minX = 0;
+    minY = 0;
+    maxX = 0;
+    maxY = 0;
+
+    processInstructions(instructions: Instruction[]) {
+        let position = new Point(0, 0);
+
+        instructions.forEach(({ direction, nSteps }) => {
+            const diff = PositionDiffs[direction];
+            const finalPoint = new Point(
+                position.x + diff.x * nSteps,
+                position.y + diff.y * nSteps
+            );
+
+            const range: Range = [position, finalPoint];
+            this.trenchedRanges.push({
+                direction,
+                range,
+            });
+
+            const minCol = Math.min(position.x, finalPoint.x);
+            const maxCol = Math.max(position.x, finalPoint.x);
+            const minRow = Math.min(position.y, finalPoint.y);
+            const maxRow = Math.max(position.y, finalPoint.y);
+            for (let row = minRow; row <= maxRow; row += 1) {
+                for (let col = minCol; col <= maxCol; col += 1) {
+                    this.pointsInRange.add(new Point(col, row));
+                }
+            }
+
+            if (isVerticalDirection(direction)) {
+                this.verticalRanges.push({
+                    direction,
+                    range,
+                });
+            }
+
+            position = finalPoint;
+
+            this.minX = Math.min(this.minX, position.x);
+            this.minY = Math.min(this.minY, position.y);
+            this.maxX = Math.max(this.maxX, position.x);
+            this.maxY = Math.max(this.maxY, position.y);
+        });
+
+        // Sort vertical ranges from left to right
+        this.verticalRanges.sort((a, b) => a.range[0].col - b.range[0].col);
+
+        return this;
+    }
+
+    get width() {
+        return this.maxX - this.minX + 1;
+    }
+
+    get height() {
+        return this.maxY - this.minY + 1;
+    }
+
+    static isInRange(row: number, col: number, range: Range) {
+        const [start, end] = range;
+        return (
+            Math.min(start.col, end.col) <= col &&
+            col <= Math.max(start.col, end.col) &&
+            Math.min(start.row, end.row) <= row &&
+            row <= Math.max(start.row, end.row)
+        );
+    }
+
+    get trenchCount() {
+        let sum = 0;
+
+        for (let row = this.minY; row <= this.maxY; row += 1) {
+            const verticalsSeen: Direction[] = [];
+
+            let verticalRangesRemaining = this.verticalRanges.slice();
+
+            for (let col = this.minX; col <= this.maxX; col += 1) {
+                const isInRange = this.trenchedRanges.find(({ range }) =>
+                    GiantTerrainMap.isInRange(row, col, range)
+                );
+                if (isInRange) {
+                    sum += 1;
+                    continue;
+                }
+
+                verticalRangesRemaining = verticalRangesRemaining.filter(
+                    ({ direction, range }) => {
+                        const [start, end] = range;
+
+                        if (start.col < col) {
+                            if (
+                                GiantTerrainMap.isInRange(row, start.col, range)
+                            ) {
+                                verticalsSeen.push(direction);
+                            }
+
+                            return false;
+                        }
+
+                        return true;
+                    }
+                );
+
+                const firstVerticalSeen = verticalsSeen[0];
+                const lastVerticalSeen =
+                    verticalsSeen[verticalsSeen.length - 1];
+
+                if (
+                    firstVerticalSeen === undefined ||
+                    lastVerticalSeen === undefined
+                ) {
+                    continue;
+                }
+
+                if (firstVerticalSeen === lastVerticalSeen) {
+                    sum += 1;
+                }
+            }
+        }
+
+        return sum;
+    }
+}
+
+type Range = [Point, Point];
 
 interface Instruction {
     direction: Direction;
@@ -164,15 +314,12 @@ const Directions = {
     Left: 'L',
     Right: 'R',
 } as const;
+const verticalDirections: Direction[] = [Directions.Up, Directions.Down];
+function isVerticalDirection(direction: Direction) {
+    return verticalDirections.includes(direction);
+}
 
 type Direction = (typeof Directions)[keyof typeof Directions];
-
-const DigitToDirection = {
-    0: Directions.Right,
-    1: Directions.Down,
-    2: Directions.Left,
-    3: Directions.Up,
-} as const;
 
 const PositionDiffs = {
     [Directions.Up]: { x: 0, y: -1 },

@@ -39,8 +39,10 @@ async function start() {
     // await puzzle17.run();
     await puzzle18.run({
         example: true,
-        mainProblem: false,
+        mainProblem: true,
     });
+
+    // 35016 too low
 }
 
 start();
