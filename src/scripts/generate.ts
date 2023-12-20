@@ -66,12 +66,14 @@ async function setupNextPuzzle() {
     );
     writeFileSync(
         path.join(srcFolder, 'index.ts'),
-        `import {
+        `import kleur from 'kleur';
+import {
 ${Array.from(
     { length: nextPuzzleNumber },
     (v, i) => `    puzzle${i + 1},`
 ).join('\n')}
 } from '~/puzzles';
+import { Timer } from '~/util/Timer';
 
 async function start() {    
     const timer = new Timer();
