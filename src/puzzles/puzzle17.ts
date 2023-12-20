@@ -40,116 +40,71 @@ export const puzzle17 = new Puzzle({
         };
     },
     part1: ({ startBlock, endBlock }) => {
-        const bestSeenAtState = new Map<string, number>();
-
-        let minHeatLoss = Infinity;
-
-        const priorityQueue = new PriorityQueue<WalkState>({
-            compare: (a, b) => a.totalHeatLoss - b.totalHeatLoss,
+        return solveCruciblePath({
+            nMaxInDirection: 3,
+            startBlock,
+            endBlock,
         });
-        priorityQueue.add({
-            blocks: [startBlock],
-            directions: [],
-            totalHeatLoss: 0,
+    },
+    part2: ({ startBlock, endBlock }) => {
+        return solveCruciblePath({
+            nMinInDirection: 4,
+            nMaxInDirection: 10,
+            startBlock,
+            endBlock,
         });
+    },
+});
 
-        priorityQueue.process(({ blocks, directions, totalHeatLoss }) => {
+function solveCruciblePath({
+    nMinInDirection = 1,
+    nMaxInDirection,
+    startBlock,
+    endBlock,
+}: {
+    nMinInDirection?: number;
+    nMaxInDirection: number;
+    startBlock: CityBlock;
+    endBlock: CityBlock;
+}) {
+    const bestSeenAtState = new Map<string, number>();
+
+    let minHeatLoss = Infinity;
+
+    const priorityQueue = new PriorityQueue<WalkState>({
+        compare: (a, b) => a.totalHeatLoss - b.totalHeatLoss,
+    });
+    priorityQueue.add({
+        blocks: [startBlock],
+        totalHeatLoss: 0,
+    });
+
+    priorityQueue.process(
+        ({
+            blocks,
+            lastDirection,
+            nStepsInDirectionSoFar = 0,
+            totalHeatLoss,
+        }) => {
             const possibleNextDirections: Direction[] = [];
-
-            const [lastDirection] = directions.slice(-1);
-            const lastThreeDirections = directions.slice(-3);
-
-            if (lastDirection) {
-                const oppositeDirection = OppositeDirections[lastDirection];
-                for (const direction of Directions) {
-                    if (direction === oppositeDirection) {
-                        continue;
-                    }
-
-                    if (
-                        lastThreeDirections.length === 3 &&
-                        lastThreeDirections.every((d) => d === direction)
-                    ) {
-                        continue;
-                    }
-
-                    possibleNextDirections.push(direction);
-                }
-            } else {
-                possibleNextDirections.push('right', 'down');
-            }
 
             const block = blocks[blocks.length - 1];
             if (!block) {
                 return;
             }
+
             if (block === endBlock) {
-                minHeatLoss = Math.min(minHeatLoss, totalHeatLoss);
+                if (nStepsInDirectionSoFar >= nMinInDirection) {
+                    minHeatLoss = Math.min(minHeatLoss, totalHeatLoss);
+                }
                 return;
             }
 
-            for (const direction of possibleNextDirections) {
-                const neighbor = block.getNeighborIn(direction);
-                if (!neighbor) {
-                    continue;
-                }
-                if (blocks.includes(neighbor)) {
-                    continue;
-                }
-                if (totalHeatLoss + neighbor.heatLoss > minHeatLoss) {
-                    continue;
-                }
-
-                const nextState = {
-                    blocks: blocks.concat(neighbor),
-                    directions: directions.concat(direction),
-                    totalHeatLoss: totalHeatLoss + neighbor.heatLoss,
-                };
-
-                const stateKey = [
-                    neighbor.position,
-                    nextState.directions.slice(-3),
-                ].join(':');
-                const bestSeen = bestSeenAtState.get(stateKey);
-                if (bestSeen && bestSeen <= nextState.totalHeatLoss) {
-                    continue;
-                }
-
-                bestSeenAtState.set(stateKey, nextState.totalHeatLoss);
-                priorityQueue.add(nextState);
-            }
-        });
-
-        return minHeatLoss;
-    },
-    part2: ({ startBlock, endBlock }) => {
-        const nMinInDirection = 4;
-        const nMaxInDirection = 10;
-
-        const bestSeenAtState = new Map<string, number>();
-
-        let minHeatLoss = Infinity;
-
-        const priorityQueue = new PriorityQueue<WalkState>({
-            compare: (a, b) => a.totalHeatLoss - b.totalHeatLoss,
-        });
-        priorityQueue.add({
-            blocks: [startBlock],
-            directions: [],
-            totalHeatLoss: 0,
-        });
-
-        priorityQueue.process(({ blocks, directions, totalHeatLoss }) => {
-            const possibleNextDirections: Direction[] = [];
-
-            const [lastDirection] = directions.slice(-1);
-            const lastFourDirections = directions.slice(-nMinInDirection);
-            const lastTenDirections = directions.slice(-nMaxInDirection);
-
+            /**
+             * Get possible next directions
+             */
             if (lastDirection) {
-                if (lastFourDirections.some((d) => d !== lastDirection)) {
-                    possibleNextDirections.push(lastDirection);
-                } else {
+                if (nStepsInDirectionSoFar >= nMinInDirection) {
                     const oppositeDirection = OppositeDirections[lastDirection];
                     for (const direction of Directions) {
                         if (direction === oppositeDirection) {
@@ -157,30 +112,25 @@ export const puzzle17 = new Puzzle({
                         }
 
                         if (
-                            lastTenDirections.length === nMaxInDirection &&
-                            lastTenDirections.every((d) => d === direction)
+                            nStepsInDirectionSoFar >= nMaxInDirection &&
+                            lastDirection === direction
                         ) {
                             continue;
                         }
 
                         possibleNextDirections.push(direction);
                     }
+                } else {
+                    possibleNextDirections.push(lastDirection);
                 }
             } else {
+                // Initial movement directions
                 possibleNextDirections.push('right', 'down');
             }
 
-            const block = blocks[blocks.length - 1];
-            if (!block) {
-                return;
-            }
-            if (block === endBlock) {
-                if (lastFourDirections.every((d) => d === lastDirection)) {
-                    minHeatLoss = Math.min(minHeatLoss, totalHeatLoss);
-                }
-                return;
-            }
-
+            /**
+             * Score and add next states to queue
+             */
             for (const direction of possibleNextDirections) {
                 const neighbor = block.getNeighborIn(direction);
                 if (!neighbor) {
@@ -193,15 +143,20 @@ export const puzzle17 = new Puzzle({
                     continue;
                 }
 
-                const nextState = {
+                const nextState: WalkState = {
                     blocks: blocks.concat(neighbor),
-                    directions: directions.concat(direction),
+                    lastDirection: direction,
+                    nStepsInDirectionSoFar:
+                        lastDirection === direction
+                            ? nStepsInDirectionSoFar + 1
+                            : 1,
                     totalHeatLoss: totalHeatLoss + neighbor.heatLoss,
                 };
 
                 const stateKey = [
                     neighbor.position,
-                    nextState.directions.slice(-nMaxInDirection),
+                    nextState.lastDirection,
+                    nextState.nStepsInDirectionSoFar,
                 ].join(':');
                 const bestSeen = bestSeenAtState.get(stateKey);
                 if (bestSeen && bestSeen <= nextState.totalHeatLoss) {
@@ -211,15 +166,16 @@ export const puzzle17 = new Puzzle({
                 bestSeenAtState.set(stateKey, nextState.totalHeatLoss);
                 priorityQueue.add(nextState);
             }
-        });
+        }
+    );
 
-        return minHeatLoss;
-    },
-});
+    return minHeatLoss;
+}
 
 interface WalkState {
     blocks: CityBlock[];
-    directions: Direction[];
+    lastDirection?: Direction;
+    nStepsInDirectionSoFar?: number;
     totalHeatLoss: number;
 }
 
