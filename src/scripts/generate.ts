@@ -39,8 +39,6 @@ async function setupNextPuzzle() {
         },
     });
 
-    const solutionTemplate = SolutionTemplate(nextPuzzleNumber);
-
     console.log(
         kleur.cyan(
             `Generating solution template for puzzle ${nextPuzzleNumber}:
@@ -50,21 +48,7 @@ async function setupNextPuzzle() {
     );
     writeFileSync(
         path.join(puzzleFolder, `puzzle${nextPuzzleNumber}.ts`),
-        `import { Puzzle } from './Puzzle';
-
-export const puzzle${nextPuzzleNumber} = new Puzzle({
-    day: ${nextPuzzleNumber},
-    parseInput: (fileData) => {
-        return fileData.split('\\n').filter((s) => s);
-    },
-    part1: (data) => {
-        console.log(data);
-    },
-    part2: (data) => {
-        //
-    },
-});
-`
+        SolutionTemplate(nextPuzzleNumber)
     );
     writeFileSync(
         path.join(puzzleFolder, 'index.ts'),
@@ -90,6 +74,8 @@ ${Array.from(
 } from '~/puzzles';
 
 async function start() {    
+    const timer = new Timer();
+
 ${Array.from(
     { length: nextPuzzleNumber - 1 },
     (v, i) => `    // await puzzle${i + 1}.run();`
@@ -98,6 +84,8 @@ ${Array.from(
         example: true, 
         mainProblem: false 
     });
+
+    console.log(kleur.cyan(\`All puzzles ran in \${timer.time}.\`));
 }
 
 start();

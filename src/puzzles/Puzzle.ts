@@ -148,7 +148,7 @@ function printResult({
         console.log(
             kleur.white(`${indent}Result `) + kleur.bold().green(result)
         );
-        console.log(kleur.white(`${indent}${timer.time}`));
+        console.log(kleur.white(`${indent}Ran for ${timer.time}`));
     }
 
     console.log('');

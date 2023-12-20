@@ -23,6 +23,6 @@ export class Timer {
             times.push(`${minRun.toFixed(2)} minutes`);
         }
 
-        return `Ran for ${times.join(' / ')}`;
+        return `${times.join(' / ')}`;
     }
 }

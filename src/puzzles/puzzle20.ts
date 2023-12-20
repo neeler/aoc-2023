@@ -48,28 +48,38 @@ export const puzzle20 = new Puzzle({
         return modules.pulseScore;
     },
     part2: (modules) => {
-        const targetModule = 'rx';
+        const target = 'rx';
+        try {
+            modules.setTarget(target);
+        } catch {
+            return 'Skipping part 2 because the target is not valid';
+        }
 
-        const inputsOfTargetModule = modules.getInputOf(targetModule);
+        const inputsOfTargetModule = modules.getInputOf(target);
         const targetModuleInput = modules.modules.get(inputsOfTargetModule[0]!);
+        /**
+         * This solution assumes that the target module
+         * is connected to a single conjunction module,
+         * as observed in my input.
+         */
         if (
             inputsOfTargetModule.length !== 1 ||
             targetModuleInput?.moduleType !== '&'
         ) {
-            return 'Skipping part 2 because the input is not valid';
+            return 'Skipping part 2 because the solution assumptions are not valid';
         }
 
         const relevantInputs = targetModuleInput.inputs;
 
         while (
             relevantInputs.some(
-                (name) => !modules.nPressesUntilLowSeen.has(name)
+                (name) => !modules.nPressesUntilEmitsHigh.has(name)
             )
         ) {
             modules.pushButton();
         }
         return relevantInputs
-            .map((name) => modules.nPressesUntilLowSeen.get(name)!)
+            .map((name) => modules.nPressesUntilEmitsHigh.get(name)!)
             .reduce(lcm, 1);
     },
 });
@@ -86,6 +96,7 @@ interface Pulse {
     type: PulseType;
     source: string;
     destination: string;
+    sentAt: number;
 }
 
 interface Module {
@@ -107,8 +118,8 @@ class ModuleChain {
     nHighPulses = 0;
 
     nButtonPresses = 0;
-    nPressesUntilLowSeen = new Map<string, number>();
-    nPressesUntilHighSeen = new Map<string, number>();
+    target?: string;
+    nPressesUntilEmitsHigh = new Map<string, number>();
 
     add(module: Module) {
         this.modules.add(module);
@@ -127,6 +138,13 @@ class ModuleChain {
         });
     }
 
+    setTarget(target: string) {
+        this.target = target;
+        if (!this.moduleNames.includes(target)) {
+            throw new Error(`Unknown target: ${target}`);
+        }
+    }
+
     getInputOf(moduleName: string) {
         return this.modules
             .values()
@@ -140,34 +158,34 @@ class ModuleChain {
             type: PulseTypes.LOW,
             source: 'button',
             destination: 'broadcaster',
+            sentAt: this.nButtonPresses,
         });
         this.pulses.process((pulse) => {
             const destination = this.modules.get(pulse.destination);
+
+            /**
+             * We want to keep track of how many low and high pulses
+             * are emitted for part 1.
+             */
             if (pulse.type === PulseTypes.LOW) {
                 this.nLowPulses++;
             } else {
                 this.nHighPulses++;
             }
 
+            /**
+             * We want to keep track of when each module
+             * emits a high pulse for part 2.
+             */
             if (
-                !this.nPressesUntilLowSeen.has(pulse.destination) &&
-                pulse.type === PulseTypes.LOW
-            ) {
-                this.nPressesUntilLowSeen.set(
-                    pulse.destination,
-                    this.nButtonPresses
-                );
-            } else if (
-                !this.nPressesUntilHighSeen.has(pulse.destination) &&
+                !this.nPressesUntilEmitsHigh.has(pulse.source) &&
                 pulse.type === PulseTypes.HIGH
             ) {
-                this.nPressesUntilHighSeen.set(
-                    pulse.destination,
-                    this.nButtonPresses
-                );
+                this.nPressesUntilEmitsHigh.set(pulse.source, pulse.sentAt);
             }
 
             if (!destination) {
+                // This is a dead end
                 return;
             }
 
@@ -177,6 +195,7 @@ class ModuleChain {
                         type,
                         source: pulse.destination,
                         destination: moduleName,
+                        sentAt: pulse.sentAt,
                     });
                 });
             };
