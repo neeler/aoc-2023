@@ -140,7 +140,10 @@ export const puzzle8 = new Puzzle({
 
         const cycles = validateCycleAssumptions(cycleDetectedForNodes);
 
-        return cycles.map((cycle) => cycle.cycleLength).reduce(lcm);
+        return cycles.reduce(
+            (lcmSoFar, cycle) => lcm(lcmSoFar, cycle.cycleLength),
+            1
+        );
     },
 });
 
