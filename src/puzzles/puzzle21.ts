@@ -1,92 +1,170 @@
 import { Grid } from '~/types/Grid';
 import { Queue } from '~/types/Queue';
+import { FixedSizeArray } from '~/types/arrays';
+import { range } from '~/util/range';
 import { Puzzle } from './Puzzle';
 
-class Node {
-    readonly isStart: boolean;
-    readonly isGarden: boolean;
-    readonly isRock: boolean;
-    distanceToStart: number = Infinity;
-
-    constructor(
-        readonly config: {
-            row: number;
-            col: number;
-            grid: Grid<Node>;
-            input: string;
-        }
-    ) {
-        this.isStart = config.input === 'S';
-        this.isGarden = this.isStart || config.input === '.';
-        this.isRock = config.input === '#';
-    }
-
-    toString() {
-        return this.config.input;
-    }
-}
-
-export const puzzle21 = new Puzzle<string[][]>({
+export const puzzle21 = new Puzzle({
     day: 21,
     parseInput: (fileData) => {
-        return fileData
-            .split('\n')
-            .filter((s) => s)
-            .map((s) => s.split(''));
+        const start = { row: 0, col: 0 };
+        const grid = Grid.from2DArray<string, string>(
+            fileData
+                .split('\n')
+                .filter((s) => s)
+                .map((s) => s.split('')),
+            ({ row, col, input }) => {
+                if (input === MapSymbols.START) {
+                    start.row = row;
+                    start.col = col;
+                    return MapSymbols.GARDEN;
+                }
+                return input;
+            }
+        );
+        return {
+            grid,
+            start,
+        };
     },
-    part1: (fileData) => {
-        return countGardens(fileData, 64);
-    },
-    part2: (fileData) => {
-        Array.from({ length: 10 }, (_, i) => i).forEach((n) => {
-            console.log(`65 + ${n}*131`, countGardens(fileData, 65 + n * 131));
+    part1: ({ grid, start }) => {
+        return countGardens({
+            grid,
+            start,
+            nSteps: 64,
         });
+    },
+    part2: ({ grid, start }) => {
+        const maxSteps = 26501365;
 
-        return;
+        const cycleLength = grid.width;
+        const x = Math.floor(maxSteps / cycleLength);
+        const remainder = maxSteps % cycleLength;
+
+        const manualResults = range(0, 4).map((x) =>
+            countGardens({
+                grid,
+                start,
+                nSteps: remainder + x * cycleLength,
+            })
+        ) as FixedSizeArray<number, 4>;
+
+        /**
+         * y = ax^2 + bx + c
+         *
+         * y(0) = c
+         * y(1) = a + b + c
+         * y(2) = 4a + 2b + c
+         */
+        const a =
+            (manualResults[0] - 2 * manualResults[1] + manualResults[2]) / 2;
+        const b = manualResults[1] - manualResults[0] - a;
+        const c = manualResults[0];
+
+        const quadratic = (x: number) => a * x ** 2 + b * x + c;
+
+        /**
+         * Sanity check
+         */
+        if (manualResults.some((r, i) => r !== quadratic(i))) {
+            throw new Error('Quadratic assumption is wrong');
+        }
+
+        return quadratic(x);
     },
 });
 
-function countGardens(data: string[][], nSteps: number) {
-    const grid = Grid.from2DArray<string, Node>(
-        data,
-        ({ row, col, grid, input }) =>
-            new Node({
-                row,
-                col,
-                grid,
-                input,
-            })
-    );
-    const startingNode = grid.find((node) => !!node?.isStart);
-    if (!startingNode) {
-        throw new Error('No starting node found');
+const MapSymbols = {
+    START: 'S',
+    GARDEN: '.',
+    ROCK: '#',
+};
+
+function countGardens({
+    grid,
+    start,
+    nSteps,
+}: {
+    grid: Grid<string>;
+    start: { row: number; col: number };
+    nSteps: number;
+}) {
+    const endedAt = new Set<string>();
+    const visitedWithNSteps = new Map<string, number>();
+
+    const walk = new Queue<{
+        row: number;
+        col: number;
+        nStepsSoFar: number;
+    }>();
+
+    const targetPolarity = nSteps % 2;
+
+    function addToQueue({
+        row,
+        col,
+        nStepsSoFar = 0,
+    }: {
+        row: number;
+        col: number;
+        nStepsSoFar: number;
+    }) {
+        const key = `${row},${col}`;
+        const pastVisitedDistance = visitedWithNSteps.get(key) ?? Infinity;
+
+        if (nStepsSoFar >= pastVisitedDistance || nStepsSoFar > nSteps) {
+            return;
+        }
+
+        visitedWithNSteps.set(key, nStepsSoFar);
+        walk.add({
+            row,
+            col,
+            nStepsSoFar,
+        });
+        if (nStepsSoFar % 2 === targetPolarity) {
+            endedAt.add(key);
+        }
     }
 
-    // Use the starting node to calculate the distance to each node
-    startingNode.distanceToStart = 0;
-    const walk = new Queue<Node>();
-    walk.add(startingNode);
-    walk.process((node) => {
-        const neighbors = grid.getOrthogonalNeighborsOf(
-            node.config.row,
-            node.config.col
-        );
-        for (const neighbor of neighbors) {
-            if (!neighbor || neighbor.isStart || neighbor.isRock) {
-                continue;
-            }
-            const distanceToNeighbor = node.distanceToStart + 1;
-            if (distanceToNeighbor < neighbor.distanceToStart) {
-                neighbor.distanceToStart = distanceToNeighbor;
-                walk.add(neighbor);
-            }
-        }
+    addToQueue({
+        row: start.row,
+        col: start.col,
+        nStepsSoFar: 0,
     });
 
-    return grid.filter(
-        (node) =>
-            node?.isGarden &&
-            node.distanceToStart <= nSteps &&
-            node.distanceToStart % 2 === nSteps % 2
-    ).length;
+    walk.process(({ row, col, nStepsSoFar }) => {
+        Grid.orthogonalNeighbors.forEach(([rowDiff, colDiff]) => {
+            const newRow = row + rowDiff;
+            const newCol = col + colDiff;
+
+            /**
+             * Wrap around the grid
+             * Make sure that we avoid modulos of negative numbers
+             */
+            let wrappedRow = newRow;
+            while (wrappedRow < 0) {
+                wrappedRow = wrappedRow + grid.height;
+            }
+            let wrappedCol = newCol;
+            while (wrappedCol < 0) {
+                wrappedCol = wrappedCol + grid.width;
+            }
+
+            const neighbor = grid.getAt(
+                wrappedRow % grid.height,
+                wrappedCol % grid.width
+            );
+
+            if (neighbor !== MapSymbols.ROCK) {
+                addToQueue({
+                    row: newRow,
+                    col: newCol,
+                    nStepsSoFar: nStepsSoFar + 1,
+                });
+            }
+        });
+    });
+
+    return endedAt.size;
 }

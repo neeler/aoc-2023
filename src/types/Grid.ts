@@ -156,6 +156,22 @@ export class Grid<T> {
         return undefined;
     }
 
+    findCoords(
+        fn: (data: T | undefined, row: number, col: number) => boolean
+    ): { row: number; col: number } | undefined {
+        for (const [iRow, row] of this.grid.entries()) {
+            for (const [iCol, node] of row.entries()) {
+                if (fn(node, iRow, iCol)) {
+                    return {
+                        row: iRow,
+                        col: iCol,
+                    };
+                }
+            }
+        }
+        return undefined;
+    }
+
     getOrthogonalNeighborsOf(row: number, col: number) {
         return Grid.orthogonalNeighbors.reduce<T[]>(
             (neighbors, [rowDiff, colDiff]) => {
