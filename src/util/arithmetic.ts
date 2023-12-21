@@ -19,3 +19,7 @@ export function lcm(a: number, b: number) {
     }
     return (a * b) / gcd(a, b);
 }
+
+export function mod(n: number, modulus: number) {
+    return ((n % modulus) + modulus) % modulus;
+}

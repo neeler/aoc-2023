@@ -1,6 +1,7 @@
 import { Grid } from '~/types/Grid';
 import { Queue } from '~/types/Queue';
 import { FixedSizeArray } from '~/types/arrays';
+import { mod } from '~/util/arithmetic';
 import { range } from '~/util/range';
 import { Puzzle } from './Puzzle';
 
@@ -161,22 +162,9 @@ function countGardens({
             const newRow = row + rowDiff;
             const newCol = col + colDiff;
 
-            /**
-             * Wrap around the grid
-             * Make sure that we avoid modulos of negative numbers
-             */
-            let wrappedRow = newRow;
-            while (wrappedRow < 0) {
-                wrappedRow = wrappedRow + grid.height;
-            }
-            let wrappedCol = newCol;
-            while (wrappedCol < 0) {
-                wrappedCol = wrappedCol + grid.width;
-            }
-
             const neighbor = grid.getAt(
-                wrappedRow % grid.height,
-                wrappedCol % grid.width
+                mod(newRow, grid.height),
+                mod(newCol, grid.width)
             );
 
             if (neighbor !== MapSymbols.ROCK) {
