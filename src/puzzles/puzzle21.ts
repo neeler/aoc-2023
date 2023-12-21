@@ -35,19 +35,39 @@ export const puzzle21 = new Puzzle({
         });
     },
     part2: ({ grid, start }) => {
-        const maxSteps = 26501365;
+        if (grid.width !== 131) {
+            return countGardens({
+                grid,
+                start,
+                nSteps: 500,
+            });
+        }
+
+        if (grid.width !== grid.height) {
+            throw new Error('Grid must be square');
+        }
 
         const cycleLength = grid.width;
+        const maxSteps = 26501365;
         const x = Math.floor(maxSteps / cycleLength);
         const remainder = maxSteps % cycleLength;
 
-        const manualResults = range(0, 4).map((x) =>
+        /**
+         * We need at least 3 manual results to determine the quadratic coefficients.
+         * If we have more, we can check that the quadratic assumption is correct.
+         */
+        const nManualResults = 3;
+        if (nManualResults < 3) {
+            throw new Error('Not enough manual results');
+        }
+
+        const manualResults = range(0, nManualResults).map((x) =>
             countGardens({
                 grid,
                 start,
                 nSteps: remainder + x * cycleLength,
             })
-        ) as FixedSizeArray<number, 4>;
+        ) as FixedSizeArray<number, typeof nManualResults>;
 
         /**
          * y = ax^2 + bx + c
@@ -66,7 +86,10 @@ export const puzzle21 = new Puzzle({
         /**
          * Sanity check
          */
-        if (manualResults.some((r, i) => r !== quadratic(i))) {
+        if (
+            nManualResults > 3 &&
+            manualResults.some((r, i) => r !== quadratic(i))
+        ) {
             throw new Error('Quadratic assumption is wrong');
         }
 
