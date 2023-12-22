@@ -1,26 +1,24 @@
 import { Point3D } from '~/types/Point3D';
+import { PriorityQueue } from '~/types/PriorityQueue';
 import { Queue } from '~/types/Queue';
 import { Puzzle } from './Puzzle';
 
 export const puzzle22 = new Puzzle({
     day: 22,
     parseInput: (fileData) => {
-        const bricks = fileData
-            .split('\n')
-            .filter((s) => s)
-            .map((s, index) => {
-                const [start = '', end = ''] = s.split('~');
-                return new Brick({
-                    id: index,
-                    start,
-                    end,
-                });
-            });
-        const skyMap = new SkyMap(bricks);
-
-        skyMap.settle();
-
-        return skyMap;
+        return new SkyMap(
+            fileData
+                .split('\n')
+                .filter((s) => s)
+                .map((s, index) => {
+                    const [start = '', end = ''] = s.split('~');
+                    return new Brick({
+                        id: index,
+                        start,
+                        end,
+                    });
+                })
+        );
     },
     part1: (skyMap) => {
         /**
@@ -81,31 +79,74 @@ class SkyMap {
 
     constructor(bricks: Brick[]) {
         this.bricks = bricks;
+        bricks.forEach((brick) => this.cacheBrickLocations(brick));
+        this.settle();
+    }
 
-        /**
-         * Cache the locations of each brick
-         */
-        bricks.forEach((brick) => {
-            brick.location.forEach((point) => {
-                const key = point.toString();
-                this.brickLocations.set(key, brick);
-            });
+    /**
+     * Get all the bricks that are above the given brick
+     * and are not supported by any other brick,
+     * allowing for an optional input set of bricks that have already fallen
+     */
+    getDependentBricks(brick: Brick, bricksFallen?: Set<Brick>): Brick[] {
+        const dependentBricks: Brick[] = [];
+        const bricksAbove = this.bricksAbove.get(brick);
+
+        if (bricksAbove) {
+            for (const brickAbove of bricksAbove) {
+                const bricksBelow = this.bricksBelow.get(brickAbove)!;
+
+                /**
+                 * Count the number of support bricks below this brick
+                 * that have not fallen
+                 * not including the brick we are checking
+                 */
+                let nSupports = 0;
+                for (const brickBelow of bricksBelow) {
+                    if (
+                        brickBelow !== brick &&
+                        !bricksFallen?.has(brickBelow)
+                    ) {
+                        nSupports++;
+                    }
+                }
+
+                if (nSupports === 0) {
+                    dependentBricks.push(brickAbove);
+                }
+            }
+        }
+        return dependentBricks;
+    }
+
+    /**
+     * Update the given brick's location
+     */
+    private moveDown(brick: Brick) {
+        brick.points.forEach((point) => {
+            const key = point.toString();
+            this.brickLocations.delete(key);
         });
+        brick.moveDown();
+        this.cacheBrickLocations(brick);
     }
 
     /**
      * Move all the bricks down as far as they can go
      */
-    settle() {
-        const bricksInMotion = new Queue<Brick>();
+    private settle() {
+        /**
+         * Use a priority queue to move the bricks down
+         * in order of their minimum z value
+         */
+        const bricksInMotion = new PriorityQueue<Brick>({
+            compare: (a, b) => a.minZ - b.minZ,
+        });
 
         /**
          * Add all the bricks to the queue
-         * in order of their minimum z value
          */
-        this.bricks
-            .toSorted((a, b) => a.minZ - b.minZ)
-            .forEach((brick) => bricksInMotion.add(brick));
+        this.bricks.forEach((brick) => bricksInMotion.add(brick));
 
         bricksInMotion.process((brick) => {
             /**
@@ -157,61 +198,10 @@ class SkyMap {
     }
 
     /**
-     * Get all the bricks that are above the given brick
-     * and are not supported by any other brick,
-     * allowing for an optional input set of bricks that have already fallen
-     */
-    getDependentBricks(brick: Brick, bricksFallen?: Set<Brick>): Brick[] {
-        const dependentBricks: Brick[] = [];
-        const bricksAbove = this.bricksAbove.get(brick);
-
-        if (bricksAbove) {
-            for (const brickAbove of bricksAbove) {
-                const bricksBelow = this.bricksBelow.get(brickAbove)!;
-
-                /**
-                 * Count the number of support bricks below this brick
-                 * that have not fallen
-                 * not including the brick we are checking
-                 */
-                let nSupports = 0;
-                for (const brickBelow of bricksBelow) {
-                    if (
-                        brickBelow !== brick &&
-                        !bricksFallen?.has(brickBelow)
-                    ) {
-                        nSupports++;
-                    }
-                }
-
-                if (nSupports === 0) {
-                    dependentBricks.push(brickAbove);
-                }
-            }
-        }
-        return dependentBricks;
-    }
-
-    /**
-     * Update the given brick's location
-     */
-    private moveDown(brick: Brick) {
-        brick.location.forEach((point) => {
-            const key = point.toString();
-            this.brickLocations.delete(key);
-        });
-        brick.moveDown();
-        brick.location.forEach((point) => {
-            const key = point.toString();
-            this.brickLocations.set(key, brick);
-        });
-    }
-
-    /**
      * Check if the given brick can fall
      */
     private canFall(brick: Brick): boolean {
-        return brick.location.every((point) => {
+        return brick.points.every((point) => {
             /**
              * If the brick is already on the ground, it can't fall
              */
@@ -241,7 +231,7 @@ class SkyMap {
     private getBricksAbove(brick: Brick): Brick[] {
         const bricksAboveThisBrick: Brick[] = [];
 
-        brick.location.forEach((point) => {
+        brick.points.forEach((point) => {
             const keyOfPointAbove = new Point3D(
                 point.x,
                 point.y,
@@ -257,6 +247,16 @@ class SkyMap {
 
         return bricksAboveThisBrick;
     }
+
+    /**
+     * Cache the locations of each point in the given brick
+     */
+    private cacheBrickLocations(brick: Brick) {
+        brick.points.forEach((point) => {
+            const key = point.toString();
+            this.brickLocations.set(key, brick);
+        });
+    }
 }
 
 /**
@@ -264,11 +264,10 @@ class SkyMap {
  */
 class Brick {
     readonly id: number;
+    readonly name: string;
     start: Point3D;
     end: Point3D;
-    location: Point3D[];
-    readonly size: Point3D;
-    readonly direction: Point3D;
+    points: Point3D[];
     minZ = Infinity;
 
     constructor({
@@ -281,6 +280,7 @@ class Brick {
         end: string;
     }) {
         this.id = id;
+        this.name = String.fromCharCode(65 + this.id);
 
         const [xStart = '', yStart = '', zStart = ''] = start.split(',');
         this.start = new Point3D(
@@ -292,45 +292,22 @@ class Brick {
         const [xEnd = '', yEnd = '', zEnd = ''] = end.split(',');
         this.end = new Point3D(Number(xEnd), Number(yEnd), Number(zEnd));
 
-        const dx = this.end.x - this.start.x;
-        const dy = this.end.y - this.start.y;
-        const dz = this.end.z - this.start.z;
-
-        this.size = new Point3D(
-            Math.abs(dx) + 1,
-            Math.abs(dy) + 1,
-            Math.abs(dz) + 1
-        );
-        this.direction = new Point3D(
-            dx > 0 ? 1 : -1,
-            dy > 0 ? 1 : -1,
-            dz > 0 ? 1 : -1
-        );
-
-        this.location = [];
-        for (let dx = 0; dx < this.size.x; dx++) {
-            for (let dy = 0; dy < this.size.y; dy++) {
-                for (let dz = 0; dz < this.size.z; dz++) {
-                    const point = new Point3D(
-                        this.start.x + dx * this.direction.x,
-                        this.start.y + dy * this.direction.y,
-                        this.start.z + dz * this.direction.z
-                    );
-                    this.location.push(point);
+        this.points = [];
+        for (let x = this.start.x; x <= this.end.x; x++) {
+            for (let y = this.start.y; y <= this.end.y; y++) {
+                for (let z = this.start.z; z <= this.end.z; z++) {
+                    const point = new Point3D(x, y, z);
+                    this.points.push(point);
                     this.minZ = Math.min(this.minZ, point.z);
                 }
             }
         }
     }
 
-    get name() {
-        return String.fromCharCode(65 + this.id);
-    }
-
     moveDown() {
         this.start = new Point3D(this.start.x, this.start.y, this.start.z - 1);
         this.end = new Point3D(this.end.x, this.end.y, this.end.z - 1);
-        this.location = this.location.map((point) => {
+        this.points = this.points.map((point) => {
             return new Point3D(point.x, point.y, point.z - 1);
         });
         this.minZ--;
