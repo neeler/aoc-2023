@@ -101,8 +101,11 @@ class SkyMap {
 
         /**
          * Add all the bricks to the queue
+         * in order of their minimum z value
          */
-        this.bricks.forEach((brick) => bricksInMotion.add(brick));
+        this.bricks
+            .toSorted((a, b) => a.minZ - b.minZ)
+            .forEach((brick) => bricksInMotion.add(brick));
 
         bricksInMotion.process((brick) => {
             /**
@@ -266,6 +269,7 @@ class Brick {
     location: Point3D[];
     readonly size: Point3D;
     readonly direction: Point3D;
+    minZ = Infinity;
 
     constructor({
         id,
@@ -307,13 +311,13 @@ class Brick {
         for (let dx = 0; dx < this.size.x; dx++) {
             for (let dy = 0; dy < this.size.y; dy++) {
                 for (let dz = 0; dz < this.size.z; dz++) {
-                    this.location.push(
-                        new Point3D(
-                            this.start.x + dx * this.direction.x,
-                            this.start.y + dy * this.direction.y,
-                            this.start.z + dz * this.direction.z
-                        )
+                    const point = new Point3D(
+                        this.start.x + dx * this.direction.x,
+                        this.start.y + dy * this.direction.y,
+                        this.start.z + dz * this.direction.z
                     );
+                    this.location.push(point);
+                    this.minZ = Math.min(this.minZ, point.z);
                 }
             }
         }
@@ -329,5 +333,6 @@ class Brick {
         this.location = this.location.map((point) => {
             return new Point3D(point.x, point.y, point.z - 1);
         });
+        this.minZ--;
     }
 }
