@@ -20,3 +20,4 @@ export { puzzle19 } from './puzzle19';
 export { puzzle20 } from './puzzle20';
 export { puzzle21 } from './puzzle21';
 export { puzzle22 } from './puzzle22';
+export { puzzle23 } from './puzzle23';
