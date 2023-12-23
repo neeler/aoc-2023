@@ -8,7 +8,6 @@ export const puzzle23 = new Puzzle({
     part1: (fileData) => {
         const gardenMap = new GardenMap({
             fileData,
-            allowSlopes: false,
         });
 
         return gardenMap.longestPath();
@@ -16,10 +15,8 @@ export const puzzle23 = new Puzzle({
     part2: (fileData) => {
         const gardenMap = new GardenMap({
             fileData,
-            allowSlopes: true,
+            slopesAsPaths: true,
         });
-
-        gardenMap.prune();
 
         return gardenMap.longestPath();
     },
@@ -28,15 +25,15 @@ export const puzzle23 = new Puzzle({
 class GardenMap {
     private readonly startNode: Node;
     private readonly endNode: Node;
-    private readonly allowSlopes: boolean;
     private readonly walkableNodes = new Set<Node>();
+    private readonly distanceBetweenNodes = new Map<string, number>();
 
     constructor({
         fileData,
-        allowSlopes,
+        slopesAsPaths = false,
     }: {
         fileData: string;
-        allowSlopes: boolean;
+        slopesAsPaths?: boolean;
     }) {
         const grid = Grid.from2DArray<string, Node>(
             fileData
@@ -45,7 +42,10 @@ class GardenMap {
                 .map((s) => s.split('')),
             ({ row, col, input }) =>
                 new Node({
-                    symbol: input,
+                    symbol:
+                        Symbols.SLOPES.includes(input as any) && slopesAsPaths
+                            ? Symbols.PATH
+                            : input,
                     row,
                     col,
                 })
@@ -59,9 +59,12 @@ class GardenMap {
             throw new Error('No start node found');
         }
 
+        /**
+         * Build the graph
+         * by connecting each node to its walkable neighbors
+         */
         this.startNode = startNode;
         this.endNode = endNode;
-        this.allowSlopes = allowSlopes;
         grid.forEach((node) => {
             if (node && !node.isForest) {
                 this.walkableNodes.add(node);
@@ -84,17 +87,28 @@ class GardenMap {
                             node,
                             ReverseDirections[direction]
                         );
+
+                        this.setDistanceBetweenNodes(node, neighbor, 1);
                     }
                 }
             }
         });
+
+        /**
+         * Simple pruning only works when we don't have to think about
+         * slope directionality
+         * so skip it if we have to consider slopes
+         */
+        if (slopesAsPaths) {
+            this.prune();
+        }
     }
 
     /**
      * Prune the graph by collapsing paths
      * that are just middle nodes in a single-file path
      */
-    prune() {
+    private prune() {
         let pruned = true;
         while (pruned) {
             pruned = false;
@@ -111,10 +125,6 @@ class GardenMap {
                         throw new Error('missing expected neighbors');
                     }
 
-                    if (firstNeighbor.walkableNeighbors.size !== 2) {
-                        continue;
-                    }
-
                     /**
                      * Collapse this node into the first node
                      */
@@ -122,7 +132,14 @@ class GardenMap {
                     secondNeighbor.walkableNeighbors.delete(node);
                     firstNeighbor.walkableNeighbors.add(secondNeighbor);
                     secondNeighbor.walkableNeighbors.add(firstNeighbor);
-                    firstNeighbor.nSteps += node.nSteps;
+
+                    this.setDistanceBetweenNodes(
+                        firstNeighbor,
+                        secondNeighbor,
+                        this.getDistanceBetweenNodes(firstNeighbor, node) +
+                            this.getDistanceBetweenNodes(node, secondNeighbor)
+                    );
+
                     this.walkableNodes.delete(node);
                     node.isCollapsed = true;
 
@@ -164,20 +181,38 @@ class GardenMap {
                 if (
                     !path.includes(neighbor) &&
                     (neighbor.isPath ||
-                        (this.allowSlopes && neighbor.isSlope) ||
-                        node.neighborDirections.get(neighbor) ===
-                            neighbor.symbol)
+                        neighbor.matchesDirection(
+                            node.neighborDirections.get(neighbor)!
+                        ))
                 ) {
                     queue.add({
                         node: neighbor,
                         path: [...path, neighbor],
-                        pathLength: pathLength + neighbor.nSteps,
+                        pathLength:
+                            pathLength +
+                            this.getDistanceBetweenNodes(node, neighbor),
                     });
                 }
             }
         });
 
         return longestPath;
+    }
+
+    private edgeKey(nodeA: Node, nodeB: Node) {
+        return [nodeA.id, nodeB.id].sort().join(',');
+    }
+
+    private getDistanceBetweenNodes(nodeA: Node, nodeB: Node) {
+        return this.distanceBetweenNodes.get(this.edgeKey(nodeA, nodeB)) ?? 0;
+    }
+
+    private setDistanceBetweenNodes(
+        nodeA: Node,
+        nodeB: Node,
+        distance: number
+    ) {
+        this.distanceBetweenNodes.set(this.edgeKey(nodeA, nodeB), distance);
     }
 }
 
@@ -217,13 +252,10 @@ class Node {
     readonly col: number;
     readonly isPath: boolean;
     readonly isForest: boolean;
-    readonly isSlope: boolean;
     readonly walkableNeighbors = new Set<Node>();
     readonly neighborDirections = new Map<Node, Direction>();
 
     isCollapsed = false;
-
-    nSteps = 1;
 
     constructor({
         symbol,
@@ -240,7 +272,10 @@ class Node {
         this.symbol = symbol;
         this.isPath = symbol === Symbols.PATH;
         this.isForest = symbol === Symbols.FOREST;
-        this.isSlope = Symbols.SLOPES.includes(symbol as any);
+    }
+
+    matchesDirection(direction: Direction) {
+        return this.symbol === direction;
     }
 
     toString() {
