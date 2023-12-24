@@ -75,6 +75,46 @@ export class Point3D {
 
         return indexes;
     }
+
+    equals(other: Point3D) {
+        return this.x === other.x && this.y === other.y && this.z === other.z;
+    }
+
+    add(other: Point3D) {
+        return new Point3D(
+            this.x + other.x,
+            this.y + other.y,
+            this.z + other.z
+        );
+    }
+
+    subtract(other: Point3D) {
+        return new Point3D(
+            this.x - other.x,
+            this.y - other.y,
+            this.z - other.z
+        );
+    }
+
+    multiply(scalar: number) {
+        return new Point3D(this.x * scalar, this.y * scalar, this.z * scalar);
+    }
+
+    divideBy(scalar: number) {
+        return new Point3D(this.x / scalar, this.y / scalar, this.z / scalar);
+    }
+
+    dot(other: Point3D) {
+        return this.x * other.x + this.y * other.y + this.z * other.z;
+    }
+
+    cross(other: Point3D) {
+        return new Point3D(
+            this.y * other.z - this.z * other.y,
+            this.z * other.x - this.x * other.z,
+            this.x * other.y - this.y * other.x
+        );
+    }
 }
 
 export class Point3DSet extends CustomSet<Point3D, string> {
