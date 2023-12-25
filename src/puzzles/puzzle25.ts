@@ -9,9 +9,27 @@ export const puzzle25 = new Puzzle({
         const { graph, nodes: components, edges } = buildGraph(fileData);
         const nComponents = graph.size();
 
+        /**
+         * For a set of random components, traverse the graph
+         * and count the number of times each edge is traversed.
+         * Do this a handful times, and then find the edges that are traversed the most.
+         */
         const edgeTraversals = new Map<string, number>();
+        const startedWithComponent = new Set<Component>();
+        const nComponentsToStartWith = Math.min(
+            Math.max(10, components.length * 0.25),
+            components.length
+        );
 
-        for (const firstComponent of components) {
+        while (startedWithComponent.size < nComponentsToStartWith) {
+            const firstComponent =
+                components[Math.floor(Math.random() * components.length)];
+            if (!firstComponent || startedWithComponent.has(firstComponent)) {
+                continue;
+            }
+
+            startedWithComponent.add(firstComponent);
+
             const levels = new Map<Component, number>();
 
             const queue = new Queue<Component>();
@@ -36,20 +54,33 @@ export const puzzle25 = new Puzzle({
             });
         }
 
-        const edgePrioritySorted = [...edgeTraversals.entries()]
+        /**
+         * Now we can sort the edges by the number of times they were traversed.
+         * This will give us the edges that are most likely to be part of a bridge.
+         */
+        const highestPriorityEdges = [...edgeTraversals.entries()]
             .sort(([, a], [, b]) => b - a)
             .map(([edgeId]) => edges.get(edgeId)!);
 
-        for (const edge1 of edgePrioritySorted) {
-            for (const edge2 of edgePrioritySorted.slice(1)) {
+        /**
+         * Now we can try breaking the top 3 edges and see if the network
+         * is broken into disparate subnetworks.
+         */
+        for (const edge1 of highestPriorityEdges) {
+            for (const edge2 of highestPriorityEdges.slice(1)) {
                 if (edge1 === edge2) {
                     continue;
                 }
-                for (const edge3 of edgePrioritySorted.slice(2)) {
+                for (const edge3 of highestPriorityEdges.slice(2)) {
                     if (edge1 === edge3 || edge2 === edge3) {
                         continue;
                     }
 
+                    /**
+                     * Re-build the graph to avoid mutation issues.
+                     * Then break the top 3 edges and see if the network
+                     * is broken into disparate subnetworks.
+                     */
                     const { graph: testGraph, nodes } = buildGraph(fileData);
 
                     testGraph

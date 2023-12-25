@@ -66,6 +66,8 @@ AoC ${year} Day ${this.config.day}
         if (!this.config.skipPart1) {
             const exampleData = example ? this.getExampleData() : undefined;
             if (exampleData) {
+                timer.reset();
+
                 const result = await (
                     this.config.example1 ?? this.config.part1
                 )(exampleData);
@@ -96,6 +98,8 @@ AoC ${year} Day ${this.config.day}
         if (!this.config.skipPart2) {
             const exampleData = example ? this.getExampleData() : undefined;
             if (exampleData) {
+                timer.reset();
+
                 const result = await (
                     this.config.example2 ?? this.config.part2
                 )(exampleData);
