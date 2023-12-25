@@ -9,7 +9,6 @@ export const puzzle25 = new Puzzle({
         const { graph, nodes: components, edges } = buildGraph(fileData);
         const nComponents = graph.size();
 
-        const levelSums = new Map<Component, number>();
         const edgeTraversals = new Map<string, number>();
 
         for (const firstComponent of components) {
@@ -35,11 +34,6 @@ export const puzzle25 = new Puzzle({
                     levels.set(neighbor, level + 1);
                 });
             });
-
-            for (const [component, level] of levels.entries()) {
-                const levelSum = levelSums.get(component) || 0;
-                levelSums.set(component, levelSum + level);
-            }
         }
 
         const edgePrioritySorted = [...edgeTraversals.entries()]
@@ -47,11 +41,11 @@ export const puzzle25 = new Puzzle({
             .map(([edgeId]) => edges.get(edgeId)!);
 
         for (const edge1 of edgePrioritySorted) {
-            for (const edge2 of edgePrioritySorted) {
+            for (const edge2 of edgePrioritySorted.slice(1)) {
                 if (edge1 === edge2) {
                     continue;
                 }
-                for (const edge3 of edgePrioritySorted) {
+                for (const edge3 of edgePrioritySorted.slice(2)) {
                     if (edge1 === edge3 || edge2 === edge3) {
                         continue;
                     }
